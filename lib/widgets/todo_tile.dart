@@ -74,6 +74,8 @@ class TodoTile extends StatelessWidget {
                     children: [
                       Text(
                         todo.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -97,14 +99,16 @@ class TodoTile extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 6),
-                      Row(
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           _buildTag(
                             todo.category,
                             Theme.of(context).colorScheme.primary.withOpacity(0.1),
                             Theme.of(context).colorScheme.primary,
                           ),
-                          const SizedBox(width: 8),
                           _buildTag(
                             todo.priorityText,
                             todo.priority == TodoPriority.high
@@ -114,30 +118,26 @@ class TodoTile extends StatelessWidget {
                                 ? Colors.red
                                 : Colors.grey.shade600,
                           ),
-                          const SizedBox(width: 8),
                           if (todo.isDaily)
                             _buildTag('每日', Colors.blue.shade50, Colors.blue.shade700),
-                          if (todo.isDaily) const SizedBox(width: 4),
                           if (todo.durationText.isNotEmpty)
                             _buildTag(todo.durationText, Colors.orange.shade50, Colors.orange.shade700),
-                          if (todo.durationText.isNotEmpty) const SizedBox(width: 8),
-                          if (todo.dueDate != null)
-                            Icon(
-                              Icons.access_time,
-                              size: 13,
-                              color: isExpired ? Colors.red : Colors.grey.shade400,
-                            ),
-                          if (todo.dueDate != null) const SizedBox(width: 2),
-                          if (todo.dueDate != null)
-                            Text(
-                              todo.formattedDate,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isExpired ? Colors.red : Colors.grey.shade400,
-                              ),
-                            ),
                         ],
                       ),
+                      if (todo.dueDate != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, size: 12, color: isExpired ? Colors.red : Colors.grey.shade400),
+                              const SizedBox(width: 2),
+                              Text(
+                                todo.formattedDate,
+                                style: TextStyle(fontSize: 11, color: isExpired ? Colors.red : Colors.grey.shade400),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
