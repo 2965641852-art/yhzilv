@@ -66,7 +66,6 @@ class MainActivity: FlutterActivity() {
         val usageStatsManager = getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
 
-        // 今天 0 点
         val cal = java.util.Calendar.getInstance()
         cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
         cal.set(java.util.Calendar.MINUTE, 0)
@@ -78,30 +77,38 @@ class MainActivity: FlutterActivity() {
             UsageStatsManager.INTERVAL_DAILY,
             startTime,
             endTime
-        )
+        ) ?: return emptyList()
 
         val pm = packageManager
-        val result = mutableListOf<Map<String, Any>>()
 
-        stats?.sortedByDescending { it.totalTimeInForeground }?.forEach { stat ->
-            if (stat.totalTimeInForeground > 0) {
+        // 按包名聚合：合并同一应用的多条记录
+        val aggregated = mutableMapOf<String, MutableMap<String, Any>>()
+        for (stat in stats) {
+            if (stat.totalTimeInForeground <= 0) continue
+            val pkg = stat.packageName
+            if (aggregated.containsKey(pkg)) {
+                val existing = aggregated[pkg]!!
+                existing["usageDuration"] = (existing["usageDuration"] as Long) + stat.totalTimeInForeground
+                if (stat.lastTimeUsed > (existing["lastUsed"] as Long)) {
+                    existing["lastUsed"] = stat.lastTimeUsed
+                }
+            } else {
                 val appName = try {
-                    val appInfo = pm.getApplicationInfo(stat.packageName, 0)
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
                     pm.getApplicationLabel(appInfo).toString()
                 } catch (e: PackageManager.NameNotFoundException) {
-                    stat.packageName
+                    pkg
                 }
-
-                result.add(mapOf(
-                    "packageName" to stat.packageName,
+                aggregated[pkg] = mutableMapOf(
+                    "packageName" to pkg,
                     "appName" to appName,
                     "usageDuration" to stat.totalTimeInForeground,
                     "lastUsed" to stat.lastTimeUsed
-                ))
+                )
             }
         }
 
-        return result
+        return aggregated.values.sortedByDescending { it["usageDuration"] as Long }
     }
 
     private fun getWeeklyUsage(): Map<String, Long> {
@@ -114,7 +121,6 @@ class MainActivity: FlutterActivity() {
         val result = mutableMapOf<String, Long>()
         val dayNames = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
-        // 倒推 7 天
         for (i in 6 downTo 0) {
             cal.timeInMillis = endTime
             cal.add(java.util.Calendar.DAY_OF_YEAR, -i)
@@ -134,17 +140,22 @@ class MainActivity: FlutterActivity() {
                 dayEnd
             )
 
+            // 按包名去重，同一应用只取最大时长记录
+            val seen = mutableSetOf<String>()
             var totalMs = 0L
-            stats?.forEach { stat ->
-                totalMs += stat.totalTimeInForeground
+            stats?.sortedByDescending { it.totalTimeInForeground }?.forEach { stat ->
+                if (!seen.contains(stat.packageName)) {
+                    seen.add(stat.packageName)
+                    totalMs += stat.totalTimeInForeground
+                }
             }
 
             val dayIndex = java.util.Calendar.getInstance().apply {
                 timeInMillis = dayStart
-            }.get(java.util.Calendar.DAY_OF_WEEK) - 1 // Sunday=1 -> 0
-            val label = dayNames[(dayIndex + 6) % 7] // adjust to Monday-first
+            }.get(java.util.Calendar.DAY_OF_WEEK) - 1
+            val label = dayNames[(dayIndex + 6) % 7]
 
-            result[label] = totalMs / 60000 // 转换为分钟
+            result[label] = totalMs / 60000
         }
 
         return result
