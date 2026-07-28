@@ -25,35 +25,17 @@ jobs:
           flutter-version: '3.22.0'
           channel: 'stable'
 
-      - name: 补全缺失资源
+      - name: 补全资源
         run: |
-          # 创建 .metadata 让 flutter 识别项目
           echo '{"project_type":"app"}' > .metadata
-
-          # 确保 mipmap 目录存在
-          for dir in mipmap-hdpi mipmap-mdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            mkdir -p "android/app/src/main/res/$dir"
-          done
-
-          # 生成占位 Launcher Icon (1x1 透明 PNG)
-          ICON_BASE64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=="
-          for dir in mipmap-hdpi mipmap-mdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            echo "$ICON_BASE64" | base64 -d > "android/app/src/main/res/$dir/ic_launcher.png"
-          done
-
-          # 创建 ic_launcher_background
-          cat > android/app/src/main/res/values/ic_launcher_background.xml << 'XMLEOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-            <color name="ic_launcher_background">#4A90D9</color>
-          </resources>
-          XMLEOF
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
       - name: 安装依赖
         run: flutter pub get
-
-      - name: 验证项目
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
 
       - name: 构建 Release APK
         run: flutter build apk --release
