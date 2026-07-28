@@ -12,12 +12,27 @@ class UsageDetailScreen extends StatefulWidget {
 }
 
 class _UsageDetailScreenState extends State<UsageDetailScreen> {
+  bool _hasPermission = false;
+  bool _checking = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      _checkAndLoad();
     });
+  }
+
+  Future<void> _checkAndLoad() async {
+    final service = UsageStatsService();
+    final permitted = await service.checkPermission();
+    setState(() {
+      _hasPermission = permitted;
+      _checking = false;
+    });
+    if (permitted) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -37,41 +52,91 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Consumer<UsageProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _checking
+          ? const Center(child: CircularProgressIndicator())
+          : !_hasPermission
+              ? _buildPermissionPrompt()
+              : Consumer<UsageProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-          if (provider.todaySummary == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.bar_chart, size: 64, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  Text(
-                    '暂无使用数据',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-            );
-          }
+                    if (provider.todaySummary == null ||
+                        provider.todaySummary!.apps.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.bar_chart, size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            Text(
+                              '暂无使用数据',
+                              style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildTotalCard(provider),
-                const SizedBox(height: 20),
-                _buildPieChart(provider),
-                const SizedBox(height: 20),
-                _buildAppList(provider),
-              ],
+                    return _buildContent(provider);
+                  },
+                ),
+    );
+  }
+
+  Widget _buildPermissionPrompt() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 20),
+            const Text(
+              '未开启使用情况访问权限',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-          );
-        },
+            const SizedBox(height: 12),
+            Text(
+              '需要此权限才能查看各应用的使用时长',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await UsageStatsService().openUsageSettings();
+              },
+              icon: const Icon(Icons.settings),
+              label: const Text('前往系统设置'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => _checkAndLoad(),
+              child: const Text('已开启？刷新检查'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(UsageProvider provider) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _buildTotalCard(provider),
+          const SizedBox(height: 20),
+          _buildPieChart(provider),
+          const SizedBox(height: 20),
+          _buildAppList(provider),
+        ],
       ),
     );
   }

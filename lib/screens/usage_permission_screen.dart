@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/usage_stats_service.dart';
 
 class UsagePermissionScreen extends StatelessWidget {
   const UsagePermissionScreen({super.key});
@@ -38,37 +39,12 @@ class UsagePermissionScreen extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.amber.shade700),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Android 设置 → 安全 → 有权查看使用情况的应用 → 找到「叶恒的自律生活」→ 开启',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.amber.shade900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // 在真机上会调用 android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS
-                  Navigator.pop(context);
+                  UsageStatsService().openUsageSettings();
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -77,7 +53,7 @@ class UsagePermissionScreen extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  '我知道了',
+                  '前往系统设置',
                   style: TextStyle(fontSize: 16),
                 ),
               ),
