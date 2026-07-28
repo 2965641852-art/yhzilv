@@ -80,7 +80,7 @@ class TodoTile extends StatelessWidget {
                           decoration: todo.isCompleted
                               ? TextDecoration.lineThrough
                               : null,
-                          color: todo.isCompleted ? Colors.grey : Colors.black87,
+                          color: todo.isCompleted ? Colors.grey : Theme.of(context).colorScheme.onSurface,
                           decorationColor: Colors.grey,
                         ),
                       ),

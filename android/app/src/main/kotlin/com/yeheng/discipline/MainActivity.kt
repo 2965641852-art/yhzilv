@@ -39,11 +39,19 @@ class MainActivity: FlutterActivity() {
 
     private fun hasUsagePermission(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            packageName
-        )
+        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOp(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        } else {
+            appOps.checkOp(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        }
         return mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
