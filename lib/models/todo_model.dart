@@ -1,7 +1,6 @@
 import 'package:intl/intl.dart';
 
 enum TodoPriority { low, medium, high }
-
 enum TodoStatus { pending, completed, expired }
 
 class TodoModel {
@@ -13,6 +12,9 @@ class TodoModel {
   final DateTime? dueDate;
   final DateTime? remindTime;
   final bool isCompleted;
+  final bool isDaily;
+  final int? durationMinutes;
+  final String? lastCompletedDate; // yyyy-MM-dd 格式，用于判断每日任务今天是否已重置
   final DateTime createdAt;
   final DateTime? completedAt;
 
@@ -25,6 +27,9 @@ class TodoModel {
     this.dueDate,
     this.remindTime,
     this.isCompleted = false,
+    this.isDaily = false,
+    this.durationMinutes,
+    this.lastCompletedDate,
     DateTime? createdAt,
     this.completedAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -53,6 +58,16 @@ class TodoModel {
     return DateFormat('MM/dd HH:mm').format(dueDate!);
   }
 
+  String get durationText {
+    if (durationMinutes == null || durationMinutes == 0) return '';
+    if (durationMinutes! >= 60) {
+      final h = durationMinutes! ~/ 60;
+      final m = durationMinutes! % 60;
+      return m > 0 ? '${h}小时${m}分钟' : '${h}小时';
+    }
+    return '${durationMinutes}分钟';
+  }
+
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -63,6 +78,9 @@ class TodoModel {
       'due_date': dueDate?.millisecondsSinceEpoch,
       'remind_time': remindTime?.millisecondsSinceEpoch,
       'is_completed': isCompleted ? 1 : 0,
+      'is_daily': isDaily ? 1 : 0,
+      'duration_minutes': durationMinutes,
+      'last_completed_date': lastCompletedDate,
       'created_at': createdAt.millisecondsSinceEpoch,
       'completed_at': completedAt?.millisecondsSinceEpoch,
     };
@@ -82,6 +100,9 @@ class TodoModel {
           ? DateTime.fromMillisecondsSinceEpoch(map['remind_time'] as int)
           : null,
       isCompleted: (map['is_completed'] as int? ?? 0) == 1,
+      isDaily: (map['is_daily'] as int? ?? 0) == 1,
+      durationMinutes: map['duration_minutes'] as int?,
+      lastCompletedDate: map['last_completed_date'] as String?,
       createdAt: map['created_at'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int)
           : DateTime.now(),
@@ -100,6 +121,9 @@ class TodoModel {
     DateTime? dueDate,
     DateTime? remindTime,
     bool? isCompleted,
+    bool? isDaily,
+    int? durationMinutes,
+    String? lastCompletedDate,
     DateTime? createdAt,
     DateTime? completedAt,
   }) {
@@ -112,13 +136,15 @@ class TodoModel {
       dueDate: dueDate ?? this.dueDate,
       remindTime: remindTime ?? this.remindTime,
       isCompleted: isCompleted ?? this.isCompleted,
+      isDaily: isDaily ?? this.isDaily,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      lastCompletedDate: lastCompletedDate ?? this.lastCompletedDate,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
     );
   }
 }
 
-/// 预置分类
 class TodoCategory {
   static const List<String> defaults = [
     '工作',

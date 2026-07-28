@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/todo_model.dart';
 import '../models/usage_model.dart';
+import '../models/memo_model.dart';
 
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
@@ -22,13 +23,13 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // 待办表
     await db.execute('''
       CREATE TABLE todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,12 +40,14 @@ class AppDatabase {
         due_date INTEGER,
         remind_time INTEGER,
         is_completed INTEGER DEFAULT 0,
+        is_daily INTEGER DEFAULT 0,
+        duration_minutes INTEGER,
+        last_completed_date TEXT,
         created_at INTEGER NOT NULL,
         completed_at INTEGER
       )
     ''');
 
-    // 使用时长表
     await db.execute('''
       CREATE TABLE usage_stats (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,7 +60,6 @@ class AppDatabase {
       )
     ''');
 
-    // 分类表
     await db.execute('''
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,9 +68,53 @@ class AppDatabase {
       )
     ''');
 
-    // 插入默认分类
+    await db.execute('''
+      CREATE TABLE memos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT DEFAULT '',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
+
     for (final category in TodoCategory.defaults) {
       await db.insert('categories', {'name': category});
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // 添加 is_daily 列
+      await db.execute("ALTER TABLE todos ADD COLUMN is_daily INTEGER DEFAULT 0");
+      await db.execute("ALTER TABLE todos ADD COLUMN duration_minutes INTEGER");
+      await db.execute("ALTER TABLE todos ADD COLUMN last_completed_date TEXT");
+
+      // 新建 memos 表
+      await db.execute('''
+        CREATE TABLE memos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      ''');
+
+      // 新建 settings 表
+      await db.execute('''
+        CREATE TABLE settings (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
+      ''');
     }
   }
 
@@ -81,11 +127,26 @@ class AppDatabase {
 
   Future<List<TodoModel>> getAllTodos() async {
     final db = await database;
-    final maps = await db.query(
-      'todos',
-      orderBy: 'created_at DESC',
-    );
-    return maps.map((map) => TodoModel.fromMap(map)).toList();
+    final maps = await db.query('todos', orderBy: 'created_at DESC');
+    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
+  }
+
+  /// 处理每日任务：昨天完成的今天自动重置
+  List<TodoModel> _processDailyTodos(List<TodoModel> todos) {
+    final today = _todayStr();
+    return todos.map((t) {
+      if (!t.isDaily) return t;
+      if (!t.isCompleted) return t;
+      // 每日任务已完成，检查是否是今天完成的
+      if (t.lastCompletedDate == today) return t;
+      // 昨天完成的，今天重置为未完成
+      return t.copyWith(isCompleted: false, completedAt: null);
+    }).toList();
+  }
+
+  String _todayStr() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   Future<List<TodoModel>> getTodosByStatus({bool? isCompleted}) async {
@@ -101,7 +162,7 @@ class AppDatabase {
     } else {
       maps = await db.query('todos', orderBy: 'created_at DESC');
     }
-    return maps.map((map) => TodoModel.fromMap(map)).toList();
+    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
   }
 
   Future<List<TodoModel>> getTodayTodos() async {
@@ -112,11 +173,11 @@ class AppDatabase {
 
     final maps = await db.query(
       'todos',
-      where: '(due_date >= ? AND due_date <= ?) OR is_completed = 0',
+      where: '(due_date >= ? AND due_date <= ?) OR is_completed = 0 OR is_daily = 1',
       whereArgs: [startOfDay, endOfDay],
       orderBy: 'created_at DESC',
     );
-    return maps.map((map) => TodoModel.fromMap(map)).toList();
+    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
   }
 
   Future<int> updateTodo(TodoModel todo) async {
@@ -136,6 +197,7 @@ class AppDatabase {
       {
         'is_completed': isCompleted ? 1 : 0,
         'completed_at': isCompleted ? DateTime.now().millisecondsSinceEpoch : null,
+        if (isCompleted) 'last_completed_date': _todayStr(),
       },
       where: 'id = ?',
       whereArgs: [id],
@@ -230,5 +292,51 @@ class AppDatabase {
     }
 
     return stats;
+  }
+
+  // ========== 备忘录 CRUD ==========
+
+  Future<int> insertMemo(MemoModel memo) async {
+    final db = await database;
+    return await db.insert('memos', memo.toMap());
+  }
+
+  Future<List<MemoModel>> getAllMemos() async {
+    final db = await database;
+    final maps = await db.query('memos', orderBy: 'updated_at DESC');
+    return maps.map((m) => MemoModel.fromMap(m)).toList();
+  }
+
+  Future<int> updateMemo(MemoModel memo) async {
+    final db = await database;
+    return await db.update(
+      'memos',
+      memo.toMap(),
+      where: 'id = ?',
+      whereArgs: [memo.id],
+    );
+  }
+
+  Future<int> deleteMemo(int id) async {
+    final db = await database;
+    return await db.delete('memos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ========== 设置 ==========
+
+  Future<String?> getSetting(String key) async {
+    final db = await database;
+    final maps = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    if (maps.isEmpty) return null;
+    return maps.first['value'] as String?;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    final db = await database;
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

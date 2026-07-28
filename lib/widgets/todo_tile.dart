@@ -115,6 +115,12 @@ class TodoTile extends StatelessWidget {
                                 : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 8),
+                          if (todo.isDaily)
+                            _buildTag('每日', Colors.blue.shade50, Colors.blue.shade700),
+                          if (todo.isDaily) const SizedBox(width: 4),
+                          if (todo.durationText.isNotEmpty)
+                            _buildTag(todo.durationText, Colors.orange.shade50, Colors.orange.shade700),
+                          if (todo.durationText.isNotEmpty) const SizedBox(width: 8),
                           if (todo.dueDate != null)
                             Icon(
                               Icons.access_time,
