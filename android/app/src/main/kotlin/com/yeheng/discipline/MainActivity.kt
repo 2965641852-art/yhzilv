@@ -81,7 +81,18 @@ class MainActivity: FlutterActivity() {
 
         val pm = packageManager
 
-        // 按包名聚合：合并同一应用的多条记录
+        // 一次性加载所有应用名映射，避免逐个查询失败
+        val appNameMap = mutableMapOf<String, String>()
+        try {
+            val apps = pm.getInstalledApplications(0)
+            for (ai in apps) {
+                appNameMap[ai.packageName] = pm.getApplicationLabel(ai).toString()
+            }
+        } catch (e: Exception) {
+            // fallback: 使用包名
+        }
+
+        // 按包名聚合
         val aggregated = mutableMapOf<String, MutableMap<String, Any>>()
         for (stat in stats) {
             if (stat.totalTimeInForeground <= 0) continue
@@ -93,15 +104,10 @@ class MainActivity: FlutterActivity() {
                     existing["lastUsed"] = stat.lastTimeUsed
                 }
             } else {
-                val appName = try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    pm.getApplicationLabel(appInfo).toString()
-                } catch (e: PackageManager.NameNotFoundException) {
-                    pkg
-                }
+                val name = appNameMap[pkg] ?: pkg
                 aggregated[pkg] = mutableMapOf(
                     "packageName" to pkg,
-                    "appName" to appName,
+                    "appName" to name,
                     "usageDuration" to stat.totalTimeInForeground,
                     "lastUsed" to stat.lastTimeUsed
                 )
