@@ -30,15 +30,18 @@ jobs:
           # 创建 .metadata 让 flutter 识别项目
           echo '{"project_type":"app"}' > .metadata
 
+          # 确保 mipmap 目录存在
+          for dir in mipmap-hdpi mipmap-mdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
+            mkdir -p "android/app/src/main/res/$dir"
+          done
+
           # 生成占位 Launcher Icon (1x1 透明 PNG)
-          # 用 base64 编码的 1x1 透明 PNG
           ICON_BASE64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=="
           for dir in mipmap-hdpi mipmap-mdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
             echo "$ICON_BASE64" | base64 -d > "android/app/src/main/res/$dir/ic_launcher.png"
           done
 
-          # 创建 values/ic_launcher_background.xml
-          mkdir -p android/app/src/main/res/values
+          # 创建 ic_launcher_background
           cat > android/app/src/main/res/values/ic_launcher_background.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
