@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.yeheng.discipline">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 使用时长监测权限 -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
