@@ -44,7 +44,7 @@ class YehengApp extends StatelessWidget {
           foregroundColor: Colors.black87,
           surfaceTintColor: Colors.white,
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           color: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -70,7 +70,7 @@ class YehengApp extends StatelessWidget {
           backgroundColor: Color(0xFF16213E),
           surfaceTintColor: Color(0xFF16213E),
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           color: const Color(0xFF16213E),
           elevation: 0,
           shape: RoundedRectangleBorder(

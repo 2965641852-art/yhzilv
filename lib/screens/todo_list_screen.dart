@@ -24,7 +24,7 @@ class TodoListScreen extends StatelessWidget {
               // 筛选标签
               _buildFilterBar(context, todoProvider),
               // 统计概览
-              _buildStatsBar(todoProvider),
+              _buildStatsBar(context, todoProvider),
               // 待办列表
               Expanded(
                 child: todoProvider.todos.isEmpty
@@ -94,7 +94,7 @@ class TodoListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsBar(TodoProvider provider) {
+  Widget _buildStatsBar(BuildContext context, TodoProvider provider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

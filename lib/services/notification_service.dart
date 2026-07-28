@@ -10,7 +10,6 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
-  // 通知渠道 ID
   static const String todoChannelId = 'todo_reminder';
   static const String dailyChannelId = 'daily_checkin';
   static const String usageChannelId = 'usage_alert';
@@ -37,7 +36,6 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
-    // 创建通知渠道
     await _createChannels();
   }
 
@@ -53,7 +51,6 @@ class NotificationService {
         '待办提醒',
         description: '待办事项到期或提前提醒',
         importance: Importance.high,
-        priority: Priority.high,
         enableVibration: true,
       ),
     );
@@ -64,7 +61,6 @@ class NotificationService {
         '每日打卡',
         description: '每日早晚打卡提醒',
         importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
         enableVibration: true,
       ),
     );
@@ -75,15 +71,12 @@ class NotificationService {
         '使用时长提醒',
         description: '应用使用时长超限提醒',
         importance: Importance.high,
-        priority: Priority.high,
         enableVibration: true,
       ),
     );
   }
 
-  void _onNotificationTap(NotificationResponse response) {
-    // 点击通知的处理逻辑 — 由 main.dart 中的回调处理
-  }
+  void _onNotificationTap(NotificationResponse response) {}
 
   /// 安排待办提醒
   Future<void> scheduleTodoReminder({
@@ -103,7 +96,6 @@ class NotificationService {
           channelDescription: '待办事项提醒',
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
-          priority: Priority.high,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -112,6 +104,8 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.dateAndTime,
     );
   }
@@ -134,7 +128,7 @@ class NotificationService {
     }
 
     await _plugin.zonedSchedule(
-      hour * 100 + minute, // 用时间做 ID
+      hour * 100 + minute,
       '自律打卡',
       message,
       tz.TZDateTime.from(scheduledDate, tz.local),
@@ -145,7 +139,6 @@ class NotificationService {
           channelDescription: '每日打卡提醒',
           icon: '@mipmap/ic_launcher',
           importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -154,6 +147,8 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
@@ -171,7 +166,6 @@ class NotificationService {
           channelDescription: '应用使用时长超限',
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
-          priority: Priority.high,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -195,7 +189,6 @@ class NotificationService {
           channelDescription: '待办提醒',
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
-          priority: Priority.high,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
