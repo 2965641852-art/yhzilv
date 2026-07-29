@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'providers/todo_provider.dart';
@@ -63,6 +64,12 @@ class _YehengAppState extends State<YehengApp> {
   void setTheme(String name) {
     setState(() => _themeName = name);
     AppDatabase().setSetting('theme', name);
+    final t = AppTheme.byName(name);
+    final isDark = t.isDark || _darkMode == 'dark';
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: isDark ? const Color(0xFF1E1E2E) : t.seedColor.withOpacity(0.9),
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
   }
 
   void setDarkMode(String mode) {

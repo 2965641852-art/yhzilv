@@ -25,7 +25,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -151,6 +151,9 @@ class AppDatabase {
           icon TEXT DEFAULT '📅'
         )
       ''');
+    }
+    if (oldVersion < 6) {
+      await db.execute("ALTER TABLE anniversaries ADD COLUMN remind_annually INTEGER DEFAULT 0");
     }
   }
 
