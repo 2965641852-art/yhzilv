@@ -60,9 +60,6 @@ class YehengApp extends StatelessWidget {
           backgroundColor: Color(0xFF4A90D9),
           foregroundColor: Colors.white,
         ),
-        timePickerTheme: const TimePickerThemeData(
-          entryMode: TimePickerEntryMode.input,
-        ),
       ),
 
       darkTheme: ThemeData(
@@ -92,9 +89,6 @@ class YehengApp extends StatelessWidget {
           unselectedItemColor: Colors.white54,
         ),
         dividerColor: Colors.white12,
-        timePickerTheme: const TimePickerThemeData(
-          entryMode: TimePickerEntryMode.input,
-        ),
       ),
 
       themeMode: ThemeMode.system,

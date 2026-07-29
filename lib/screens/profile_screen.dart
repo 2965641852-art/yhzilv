@@ -59,6 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final time = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 8, minute: 0),
+      initialEntryMode: TimePickerEntryMode.input,
     );
     if (time == null || !context.mounted) return;
     await NotificationService().scheduleDailyCheckin(
