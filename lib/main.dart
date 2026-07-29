@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'providers/todo_provider.dart';
 import 'providers/usage_provider.dart';
 import 'providers/memo_provider.dart';
@@ -30,6 +31,13 @@ class YehengApp extends StatelessWidget {
     return MaterialApp(
       title: '叶恒的自律生活',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [Locale('zh', 'CN')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
 
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -51,6 +59,9 @@ class YehengApp extends StatelessWidget {
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
           backgroundColor: Color(0xFF4A90D9),
           foregroundColor: Colors.white,
+        ),
+        timePickerTheme: const TimePickerThemeData(
+          entryMode: TimePickerEntryMode.input,
         ),
       ),
 
@@ -81,6 +92,9 @@ class YehengApp extends StatelessWidget {
           unselectedItemColor: Colors.white54,
         ),
         dividerColor: Colors.white12,
+        timePickerTheme: const TimePickerThemeData(
+          entryMode: TimePickerEntryMode.input,
+        ),
       ),
 
       themeMode: ThemeMode.system,
