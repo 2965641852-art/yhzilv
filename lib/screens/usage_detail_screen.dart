@@ -155,12 +155,8 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
     if (apps.isEmpty) return const SizedBox.shrink();
 
     final colors = [
-      Colors.blue.shade400,
-      Colors.red.shade300,
-      Colors.green.shade400,
-      Colors.orange.shade400,
-      Colors.purple.shade400,
-      Colors.teal.shade400,
+      Colors.blue.shade400, Colors.red.shade300, Colors.green.shade400,
+      Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400,
     ];
 
     return Container(
@@ -168,80 +164,56 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '应用分布',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
+          const Text('应用分布', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          // 饼图居中
           SizedBox(
-            height: 200,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: PieChart(
-                    PieChartData(
-                      sections: List.generate(apps.length, (i) {
-                        final pct = apps[i].usageDuration /
-                            provider.todaySummary!.totalDuration;
-                        return PieChartSectionData(
-                          value: pct,
-                          title: '${(pct * 100).toStringAsFixed(0)}%',
-                          color: colors[i % colors.length],
-                          radius: 60,
-                          titleStyle: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        );
-                      }),
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(apps.length, (i) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: colors[i % colors.length],
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                apps[i].appName,
-                                style: const TextStyle(fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ],
+            height: 180,
+            child: PieChart(
+              PieChartData(
+                sections: List.generate(apps.length, (i) {
+                  final pct = apps[i].usageDuration / provider.todaySummary!.totalDuration;
+                  return PieChartSectionData(
+                    value: pct,
+                    title: '${(pct * 100).toStringAsFixed(0)}%',
+                    color: colors[i % colors.length],
+                    radius: 55,
+                    titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  );
+                }),
+                sectionsSpace: 3,
+                centerSpaceRadius: 25,
+              ),
             ),
           ),
+          const SizedBox(height: 8),
+          // 图例横向排列
+          Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: List.generate(apps.length, (i) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 10, height: 10,
+                    decoration: BoxDecoration(color: colors[i % colors.length], shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text(apps[i].appName, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text('${(apps[i].usageDuration / provider.todaySummary!.totalDuration * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ],
+              );
+            }),
+          ),
         ],
+      ),
+    );
+  }
       ),
     );
   }
@@ -254,7 +226,6 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
