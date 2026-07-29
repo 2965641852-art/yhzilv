@@ -3,6 +3,8 @@ import 'package:path/path.dart';
 import '../models/todo_model.dart';
 import '../models/usage_model.dart';
 import '../models/memo_model.dart';
+import '../models/habit_model.dart';
+import '../models/anniversary_model.dart';
 
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
@@ -23,7 +25,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -114,6 +116,41 @@ class AppDatabase {
     if (oldVersion < 3) {
       // 清空旧的使用时长脏数据
       await db.delete('usage_stats');
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE habits (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          icon TEXT DEFAULT '✅',
+          target_count INTEGER DEFAULT 1,
+          unit TEXT DEFAULT '次',
+          category TEXT DEFAULT '默认',
+          created_at INTEGER NOT NULL,
+          is_archived INTEGER DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE habit_completions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          habit_id INTEGER NOT NULL,
+          date INTEGER NOT NULL,
+          count INTEGER DEFAULT 1,
+          FOREIGN KEY (habit_id) REFERENCES habits(id),
+          UNIQUE(habit_id, date)
+        )
+      ''');
+    }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE anniversaries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          date INTEGER NOT NULL,
+          is_countdown INTEGER DEFAULT 1,
+          icon TEXT DEFAULT '📅'
+        )
+      ''');
     }
   }
 
@@ -314,6 +351,73 @@ class AppDatabase {
   Future<int> deleteMemo(int id) async {
     final db = await database;
     return await db.delete('memos', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ========== 习惯打卡 CRUD ==========
+
+  Future<int> insertHabit(HabitModel habit) async {
+    final db = await database;
+    return await db.insert('habits', habit.toMap());
+  }
+
+  Future<List<HabitModel>> getAllHabits() async {
+    final db = await database;
+    final maps = await db.query('habits', where: 'is_archived = 0', orderBy: 'created_at ASC');
+    return maps.map((m) => HabitModel.fromMap(m)).toList();
+  }
+
+  Future<int> updateHabit(HabitModel habit) async {
+    final db = await database;
+    return await db.update('habits', habit.toMap(), where: 'id = ?', whereArgs: [habit.id]);
+  }
+
+  Future<void> toggleHabitComplete(int habitId, {int count = 1}) async {
+    final db = await database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final existing = await db.query('habit_completions', where: 'habit_id = ? AND date = ?', whereArgs: [habitId, today]);
+    if (existing.isNotEmpty) {
+      await db.update('habit_completions', {'count': count}, where: 'id = ?', whereArgs: [existing.first['id']]);
+    } else {
+      await db.insert('habit_completions', {'habit_id': habitId, 'date': today, 'count': count});
+    }
+  }
+
+  Future<int> getTodayHabitCount(int habitId) async {
+    final db = await database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final result = await db.query('habit_completions', where: 'habit_id = ? AND date = ?', whereArgs: [habitId, today]);
+    if (result.isEmpty) return 0;
+    return result.first['count'] as int? ?? 0;
+  }
+
+  Future<Map<String, int>> getHabitMonthStats(int habitId, int year, int month) async {
+    final db = await database;
+    final firstDay = DateTime(year, month, 1).millisecondsSinceEpoch;
+    final lastDay = DateTime(year, month + 1, 0, 23, 59, 59).millisecondsSinceEpoch;
+    final result = await db.query('habit_completions',
+        where: 'habit_id = ? AND date >= ? AND date <= ?',
+        whereArgs: [habitId, firstDay, lastDay]);
+    final stats = <String, int>{};
+    for (final r in result) {
+      final d = DateTime.fromMillisecondsSinceEpoch(r['date'] as int);
+      stats['${d.day}'] = r['count'] as int? ?? 0;
+    }
+    return stats;
+  }
+
+  // ========== 纪念日 CRUD ==========
+
+  Future<int> insertAnniversary(AnniversaryModel a) async {
+    final db = await database;
+    return await db.insert('anniversaries', a.toMap());
+  }
+
+  Future<List<AnniversaryModel>> getAllAnniversaries() async {
+    final db = await database;
+    final maps = await db.query('anniversaries', orderBy: 'date ASC');
+    return maps.map((m) => AnniversaryModel.fromMap(m)).toList();
   }
 
   // ========== 设置 ==========

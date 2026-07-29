@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'providers/todo_provider.dart';
 import 'providers/usage_provider.dart';
 import 'providers/memo_provider.dart';
+import 'providers/habit_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/home_screen.dart';
 
@@ -17,6 +18,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TodoProvider()..loadTodos()),
         ChangeNotifierProvider(create: (_) => UsageProvider()),
         ChangeNotifierProvider(create: (_) => MemoProvider()..loadMemos()),
+        ChangeNotifierProvider(create: (_) => HabitProvider()..loadHabits()),
       ],
       child: const YehengApp(),
     ),

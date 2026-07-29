@@ -4,6 +4,8 @@ import '../database/app_database.dart';
 import '../providers/usage_provider.dart';
 import '../services/notification_service.dart';
 import 'usage_detail_screen.dart';
+import 'pomodoro_screen.dart';
+import 'anniversary_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -127,6 +129,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }),
                 _buildMenuItem(Icons.timer_off, '应用使用限额', '设置各应用每日使用时长上限', () => _showLimitDialog(context, usageProvider)),
                 const SizedBox(height: 16), const Divider(),
+                _buildMenuItem(Icons.timer, '番茄专注', '25分钟专注 + 5分钟休息', () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const PomodoroScreen()));
+                }),
+                _buildMenuItem(Icons.favorite, '纪念日', '重要日期倒计时与正计时', () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
+                }),
                 _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () => _pickDailyReminder(context)),
                 _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v1.0.0', () {}),
               ],
