@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../database/app_database.dart';
 import '../providers/usage_provider.dart';
+import '../services/notification_service.dart';
 import 'usage_permission_screen.dart';
 import 'usage_detail_screen.dart';
 
@@ -52,6 +53,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (result != null && result.isNotEmpty) {
       await AppDatabase().setSetting('signature', result);
       setState(() => _signature = result);
+    }
+  }
+
+  Future<void> _pickDailyReminder(BuildContext context) async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 8, minute: 0),
+    );
+    if (time == null || !context.mounted) return;
+    await NotificationService().scheduleDailyCheckin(
+      hour: time.hour,
+      minute: time.minute,
+      message: '新的一天，别忘了完成今日待办！',
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已设置每日 ${time.hour}:${time.minute.toString().padLeft(2, '0')} 提醒')),
+      );
     }
   }
 
@@ -111,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }),
                 _buildMenuItem(Icons.timer_off, '应用使用限额', '设置各应用每日使用时长上限', () => _showLimitDialog(context, usageProvider)),
                 const SizedBox(height: 16), const Divider(),
-                _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () {}),
+                _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () => _pickDailyReminder(context)),
                 _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v1.0.0', () {}),
               ],
             );

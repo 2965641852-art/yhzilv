@@ -57,6 +57,7 @@ class MainActivity: FlutterActivity() {
 
     private fun openUsageSettings() {
         val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
 
