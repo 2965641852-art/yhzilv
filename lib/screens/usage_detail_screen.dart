@@ -214,8 +214,6 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
       ),
     );
   }
-      ),
-    );
   }
 
   Widget _buildAppList(UsageProvider provider) {
@@ -230,10 +228,7 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '应用排行',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
+          const Text('应用排行', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           ...List.generate(apps.length, (i) {
             final app = apps[i];
@@ -241,7 +236,6 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
                 ? app.usageDuration / provider.todaySummary!.totalDuration
                 : 0.0;
             final isOver = provider.isOverLimit(app);
-
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
@@ -252,20 +246,16 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: isOver ? Colors.red : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
-                      child: Text(
-                        '${i + 1}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isOver ? Colors.white : Colors.grey.shade600,
-                        ),
-                      ),
+                      child: Text('${i + 1}', style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isOver ? Colors.white : Colors.grey.shade600,
+                      )),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -275,19 +265,8 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
                       children: [
                         Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                app.appName,
-                                style: const TextStyle(fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            Text(
-                              app.formattedDuration,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isOver ? Colors.red : Colors.grey.shade600,
-                              ),
-                            ),
+                            Expanded(child: Text(app.appName, style: const TextStyle(fontWeight: FontWeight.w500))),
+                            Text(app.formattedDuration, style: TextStyle(fontSize: 13, color: isOver ? Colors.red : Colors.grey.shade600)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -296,9 +275,7 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
                           child: LinearProgressIndicator(
                             value: pct,
                             backgroundColor: Colors.grey.shade200,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              isOver ? Colors.red : Colors.blue,
-                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(isOver ? Colors.red : Colors.blue),
                             minHeight: 4,
                           ),
                         ),
