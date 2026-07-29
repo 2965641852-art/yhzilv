@@ -229,8 +229,19 @@ class _StatsScreenState extends State<StatsScreen> {
           show: true,
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: true, reservedSize: 30),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 42,
+              getTitlesWidget: (value, meta) {
+                if (value == 0) return const SizedBox.shrink();
+                final v = value.toInt();
+                if (v >= 1000) {
+                  return Text('${(v / 1000).toStringAsFixed(1)}K', style: const TextStyle(fontSize: 10));
+                }
+                return Text('$v', style: const TextStyle(fontSize: 10));
+              },
+            ),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(

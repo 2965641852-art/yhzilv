@@ -23,7 +23,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -92,12 +92,9 @@ class AppDatabase {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // 添加 is_daily 列
       await db.execute("ALTER TABLE todos ADD COLUMN is_daily INTEGER DEFAULT 0");
       await db.execute("ALTER TABLE todos ADD COLUMN duration_minutes INTEGER");
       await db.execute("ALTER TABLE todos ADD COLUMN last_completed_date TEXT");
-
-      // 新建 memos 表
       await db.execute('''
         CREATE TABLE memos (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,14 +104,16 @@ class AppDatabase {
           updated_at INTEGER NOT NULL
         )
       ''');
-
-      // 新建 settings 表
       await db.execute('''
         CREATE TABLE settings (
           key TEXT PRIMARY KEY,
           value TEXT
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      // 清空旧的使用时长脏数据
+      await db.delete('usage_stats');
     }
   }
 
