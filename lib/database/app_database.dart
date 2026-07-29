@@ -230,22 +230,17 @@ class AppDatabase {
 
   Future<void> insertOrUpdateUsage(UsageModel usage) async {
     final db = await database;
-    final existing = await db.query(
-      'usage_stats',
-      where: 'package_name = ? AND date = ?',
-      whereArgs: [usage.packageName, usage.date.millisecondsSinceEpoch],
-    );
+    // 先删除该应用当天所有旧记录，再插入新数据（彻底避免重复）
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59).millisecondsSinceEpoch;
 
-    if (existing.isNotEmpty) {
-      await db.update(
-        'usage_stats',
-        {'usage_duration': usage.usageDuration, 'last_used': usage.lastUsed.millisecondsSinceEpoch},
-        where: 'package_name = ? AND date = ?',
-        whereArgs: [usage.packageName, usage.date.millisecondsSinceEpoch],
-      );
-    } else {
-      await db.insert('usage_stats', usage.toMap());
-    }
+    await db.delete(
+      'usage_stats',
+      where: 'package_name = ? AND date >= ? AND date <= ?',
+      whereArgs: [usage.packageName, startOfDay, endOfDay],
+    );
+    await db.insert('usage_stats', usage.toMap());
   }
 
   Future<List<UsageModel>> getUsageForDate(DateTime date) async {

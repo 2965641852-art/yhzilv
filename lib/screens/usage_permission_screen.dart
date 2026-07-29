@@ -43,8 +43,9 @@ class UsagePermissionScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  UsageStatsService().openUsageSettings();
+                onPressed: () async {
+                  await UsageStatsService().openUsageSettings();
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
