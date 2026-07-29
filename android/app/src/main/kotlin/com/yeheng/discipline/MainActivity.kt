@@ -60,6 +60,116 @@ class MainActivity: FlutterActivity() {
         startActivity(intent)
     }
 
+    // 内置常见应用名映射（不依赖 Android 权限 API）
+    private val KNOWN_APPS = mapOf(
+        "com.tencent.mm" to "微信",
+        "com.tencent.mobileqq" to "QQ",
+        "com.tencent.wework" to "企业微信",
+        "com.ss.android.ugc.aweme" to "抖音",
+        "com.ss.android.ugc.aweme.lite" to "抖音极速版",
+        "com.smile.gifmaker" to "快手",
+        "com.kuaishou.nebula" to "快手极速版",
+        "com.xingin.xhs" to "小红书",
+        "com.sina.weibo" to "微博",
+        "com.zhihu.android" to "知乎",
+        "com.baidu.tieba" to "百度贴吧",
+        "com.baidu.searchbox" to "百度",
+        "com.android.chrome" to "Chrome",
+        "com.bilibili.app.in" to "哔哩哔哩",
+        "com.taobao.taobao" to "淘宝",
+        "com.tmall.wireless" to "天猫",
+        "com.jingdong.app.mall" to "京东",
+        "com.xunmeng.pinduoduo" to "拼多多",
+        "com.meituan.android" to "美团",
+        "com.sankuai.meituan.takeoutnew" to "美团外卖",
+        "com.eg.android.AlipayGphone" to "支付宝",
+        "com.netease.cloudmusic" to "网易云音乐",
+        "com.kugou.android" to "酷狗音乐",
+        "com.tencent.qqmusic" to "QQ音乐",
+        "com.tencent.qqlive" to "腾讯视频",
+        "com.youku.phone" to "优酷",
+        "com.qiyi.video" to "爱奇艺",
+        "com.cctv.yangshipin.app.androidp" to "央视频",
+        "com.UCMobile" to "UC浏览器",
+        "com.android.browser" to "浏览器",
+        "com.android.email" to "邮箱",
+        "com.android.calendar" to "日历",
+        "com.android.settings" to "设置",
+        "com.android.phone" to "电话",
+        "com.android.mms" to "短信",
+        "com.android.contacts" to "联系人",
+        "com.android.camera" to "相机",
+        "com.android.gallery3d" to "相册",
+        "com.android.systemui" to "系统界面",
+        "com.android.launcher" to "桌面",
+        "com.miui.home" to "桌面",
+        "com.huawei.android.launcher" to "桌面",
+        "com.oppo.launcher" to "桌面",
+        "com.vivo.launcher" to "桌面",
+        "com.samsung.android.app.spage" to "桌面",
+        "com.google.android.youtube" to "YouTube",
+        "com.google.android.gm" to "Gmail",
+        "com.google.android.apps.maps" to "Google地图",
+        "com.google.android.apps.photos" to "Google相册",
+        "com.twitter.android" to "X/Twitter",
+        "com.instagram.android" to "Instagram",
+        "com.facebook.katana" to "Facebook",
+        "com.spotify.music" to "Spotify",
+        "com.tencent.tmgp.sgame" to "王者荣耀",
+        "com.tencent.tmgp.pubgmhd" to "和平精英",
+        "com.tencent.tmgp.cf" to "穿越火线",
+        "com.netease.hyxd" to "荒野行动",
+        "com.miHoYo.Yuanshen" to "原神",
+        "com.hypergryph.arknights" to "明日方舟",
+        "com.miHoYo.hkrpg" to "崩坏星穹铁道",
+        "tv.danmaku.bili" to "B站",
+        "com.douban.frodo" to "豆瓣",
+        "com.tencent.weread" to "微信读书",
+        "com.chaozh.iReaderFree" to "掌阅",
+        "com.jjwxc.reader" to "晋江文学城",
+        "com.gotokeep.keep" to "Keep",
+        "com.codoon.gps" to "咕咚",
+        "com.tencent.news" to "腾讯新闻",
+        "com.ss.android.article.news" to "今日头条",
+        "com.netease.newsreader.activity" to "网易新闻",
+        "com.baidu.BaiduMap" to "百度地图",
+        "com.autonavi.minimap" to "高德地图",
+        "com.tencent.map" to "腾讯地图",
+        "com.didi.passenger" to "滴滴出行",
+        "ctrip.android.view" to "携程",
+        "com.MobileTicket" to "铁路12306",
+        "com.taobao.idlefish" to "闲鱼",
+        "com.alibaba.android.rimet" to "钉钉",
+        "com.tencent.wemeet.app" to "腾讯会议",
+        "com.bytedance.lark" to "飞书",
+        "com.tencent.androidqqmail" to "QQ邮箱",
+        "com.netease.mobimail" to "网易邮箱大师"
+    )
+
+    // 尝试多种方式获取应用名
+    private fun getAppName(pkg: String): String {
+        // 1. 内置映射
+        KNOWN_APPS[pkg]?.let { return it }
+
+        // 2. PackageManager
+        try {
+            val ai = packageManager.getApplicationInfo(pkg, 0)
+            val label = packageManager.getApplicationLabel(ai)
+            if (label != null && label.toString() != pkg) return label.toString()
+        } catch (_: Exception) {}
+
+        // 3. Launch intent
+        try {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                val label = intent.resolveActivityInfo(packageManager, 0)?.loadLabel(packageManager)
+                if (label != null && label.toString() != pkg) return label.toString()
+            }
+        } catch (_: Exception) {}
+
+        return pkg
+    }
+
     private fun getTodayUsage(): List<Map<String, Any>> {
         if (!hasUsagePermission()) return emptyList()
 
@@ -74,25 +184,10 @@ class MainActivity: FlutterActivity() {
         val startTime = cal.timeInMillis
 
         val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startTime,
-            endTime
+            UsageStatsManager.INTERVAL_DAILY, startTime, endTime
         ) ?: return emptyList()
 
-        val pm = packageManager
-
-        // 一次性加载所有应用名映射，避免逐个查询失败
-        val appNameMap = mutableMapOf<String, String>()
-        try {
-            val apps = pm.getInstalledApplications(0)
-            for (ai in apps) {
-                appNameMap[ai.packageName] = pm.getApplicationLabel(ai).toString()
-            }
-        } catch (e: Exception) {
-            // fallback: 使用包名
-        }
-
-        // 按包名聚合
+        // 按包名聚合去重
         val aggregated = mutableMapOf<String, MutableMap<String, Any>>()
         for (stat in stats) {
             if (stat.totalTimeInForeground <= 0) continue
@@ -104,10 +199,9 @@ class MainActivity: FlutterActivity() {
                     existing["lastUsed"] = stat.lastTimeUsed
                 }
             } else {
-                val name = appNameMap[pkg] ?: pkg
                 aggregated[pkg] = mutableMapOf(
                     "packageName" to pkg,
-                    "appName" to name,
+                    "appName" to getAppName(pkg),
                     "usageDuration" to stat.totalTimeInForeground,
                     "lastUsed" to stat.lastTimeUsed
                 )
