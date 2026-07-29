@@ -13,7 +13,11 @@ class HabitProvider extends ChangeNotifier {
   Future<void> loadHabits() async {
     _isLoading = true;
     notifyListeners();
-    _habits = await _db.getAllHabits();
+    try {
+      _habits = await _db.getAllHabits();
+    } catch (e) {
+      _habits = [];
+    }
     _isLoading = false;
     notifyListeners();
   }
