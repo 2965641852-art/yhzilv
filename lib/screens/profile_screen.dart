@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../database/app_database.dart';
 import '../providers/usage_provider.dart';
 import '../services/notification_service.dart';
-import 'usage_permission_screen.dart';
 import 'usage_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -124,9 +123,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 _buildMenuItem(Icons.bar_chart_rounded, '使用时长详情', '查看各应用使用统计', () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const UsageDetailScreen()));
-                }),
-                _buildMenuItem(Icons.security, '使用时长权限', '开启应用使用情况访问', () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const UsagePermissionScreen()));
                 }),
                 _buildMenuItem(Icons.timer_off, '应用使用限额', '设置各应用每日使用时长上限', () => _showLimitDialog(context, usageProvider)),
                 const SizedBox(height: 16), const Divider(),

@@ -184,11 +184,73 @@ class MainActivity: FlutterActivity() {
         cal.set(java.util.Calendar.MILLISECOND, 0)
         val startTime = cal.timeInMillis
 
+        // 使用 UsageEvents 精确计算前台时间
+        val usageMap = mutableMapOf<String, Long>()
+        val lastForeground = mutableMapOf<String, Long>()
+        val lastUsedMap = mutableMapOf<String, Long>()
+
+        try {
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            val event = android.app.usage.UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val pkg = event.packageName ?: continue
+                when (event.eventType) {
+                    android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                        lastForeground[pkg] = event.timeStamp
+                    }
+                    android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED -> {
+                        if (!lastForeground.containsKey(pkg)) {
+                            lastForeground[pkg] = event.timeStamp
+                        }
+                    }
+                    android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED,
+                    android.app.usage.UsageEvents.Event.ACTIVITY_STOPPED -> {
+                        val start = lastForeground.remove(pkg)
+                        if (start != null) {
+                            usageMap[pkg] = (usageMap[pkg] ?: 0L) + (event.timeStamp - start)
+                        }
+                    }
+                }
+                lastUsedMap[pkg] = event.timeStamp
+            }
+            // 仍在运行的 app
+            for ((pkg, start) in lastForeground) {
+                usageMap[pkg] = (usageMap[pkg] ?: 0L) + (endTime - start)
+            }
+        } catch (e: Exception) {
+            // events 查询失败，回退到 queryUsageStats
+            return getTodayUsageFallback()
+        }
+
+        return usageMap
+            .filter { it.value > 0 }
+            .map { (pkg, duration) ->
+                mutableMapOf(
+                    "packageName" to pkg,
+                    "appName" to getAppName(pkg),
+                    "usageDuration" to duration,
+                    "lastUsed" to (lastUsedMap[pkg] ?: 0L)
+                )
+            }
+            .sortedByDescending { it["usageDuration"] as Long }
+    }
+
+    // 回退方案：使用 queryUsageStats
+    private fun getTodayUsageFallback(): List<Map<String, Any>> {
+        val usageStatsManager = getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        val startTime = cal.timeInMillis
+
         val stats = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY, startTime, endTime
         ) ?: return emptyList()
 
-        // 按包名聚合去重
         val aggregated = mutableMapOf<String, MutableMap<String, Any>>()
         for (stat in stats) {
             if (stat.totalTimeInForeground <= 0) continue
@@ -208,7 +270,6 @@ class MainActivity: FlutterActivity() {
                 )
             }
         }
-
         return aggregated.values.sortedByDescending { it["usageDuration"] as Long }
     }
 
