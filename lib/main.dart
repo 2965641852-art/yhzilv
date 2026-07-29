@@ -6,11 +6,16 @@ import 'providers/usage_provider.dart';
 import 'providers/memo_provider.dart';
 import 'providers/habit_provider.dart';
 import 'services/notification_service.dart';
+import 'database/app_database.dart';
+import 'app_theme.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().initialize();
+
+  final savedTheme = await AppDatabase().getSetting('theme') ?? '天空蓝';
+  final useDark = await AppDatabase().getSetting('theme_dark') ?? 'system';
 
   runApp(
     MultiProvider(
@@ -20,16 +25,55 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MemoProvider()..loadMemos()),
         ChangeNotifierProvider(create: (_) => HabitProvider()..loadHabits()),
       ],
-      child: const YehengApp(),
+      child: YehengApp(initialTheme: savedTheme, initialDark: useDark),
     ),
   );
 }
 
-class YehengApp extends StatelessWidget {
-  const YehengApp({super.key});
+class YehengApp extends StatefulWidget {
+  final String initialTheme;
+  final String initialDark;
+  const YehengApp({super.key, required this.initialTheme, required this.initialDark});
+
+  static void setTheme(BuildContext context, String name) {
+    final state = context.findAncestorStateOfType<_YehengAppState>();
+    state?.setTheme(name);
+  }
+
+  static void setDarkMode(BuildContext context, String mode) {
+    final state = context.findAncestorStateOfType<_YehengAppState>();
+    state?.setDarkMode(mode);
+  }
+
+  @override
+  State<YehengApp> createState() => _YehengAppState();
+}
+
+class _YehengAppState extends State<YehengApp> {
+  late String _themeName;
+  late String _darkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeName = widget.initialTheme;
+    _darkMode = widget.initialDark;
+  }
+
+  void setTheme(String name) {
+    setState(() => _themeName = name);
+    AppDatabase().setSetting('theme', name);
+  }
+
+  void setDarkMode(String mode) {
+    setState(() => _darkMode = mode);
+    AppDatabase().setSetting('theme_dark', mode);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = AppTheme.byName(_themeName);
+
     return MaterialApp(
       title: '叶恒的自律生活',
       debugShowCheckedModeBanner: false,
@@ -41,59 +85,14 @@ class YehengApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
 
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A90D9),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          surfaceTintColor: Colors.white,
-        ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF4A90D9),
-          foregroundColor: Colors.white,
-        ),
-      ),
+      theme: buildTheme(appTheme, Brightness.light),
+      darkTheme: buildTheme(appTheme, Brightness.dark),
+      themeMode: _darkMode == 'dark'
+          ? ThemeMode.dark
+          : _darkMode == 'light'
+              ? ThemeMode.light
+              : ThemeMode.system,
 
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF64B5F6),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E1E2E),
-          foregroundColor: Colors.white,
-          surfaceTintColor: Color(0xFF1E1E2E),
-        ),
-        cardTheme: CardTheme(
-          color: const Color(0xFF252536),
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF64B5F6),
-          foregroundColor: Colors.black,
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF1E1E2E),
-          selectedItemColor: Color(0xFF64B5F6),
-          unselectedItemColor: Colors.white54,
-        ),
-        dividerColor: Colors.white12,
-      ),
-
-      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }

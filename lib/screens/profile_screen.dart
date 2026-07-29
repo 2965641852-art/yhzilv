@@ -6,6 +6,8 @@ import '../services/notification_service.dart';
 import 'usage_detail_screen.dart';
 import 'pomodoro_screen.dart';
 import 'anniversary_screen.dart';
+import '../app_theme.dart';
+import '../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -76,6 +78,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _pickTheme(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: AppTheme.themes.map((t) {
+            return GestureDetector(
+              onTap: () {
+                YehengApp.setTheme(context, t.name);
+                if (t.isDark) YehengApp.setDarkMode(context, 'dark');
+                Navigator.pop(ctx);
+              },
+              child: Container(
+                width: 70, height: 70,
+                decoration: BoxDecoration(color: t.seedColor, borderRadius: BorderRadius.circular(16)),
+                child: Center(child: Text(t.name, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold))),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_loaded) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -136,7 +166,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
                 }),
                 _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () => _pickDailyReminder(context)),
-                _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v1.0.0', () {}),
+                _buildMenuItem(Icons.palette_outlined, '主题配色', '选择你喜欢的配色风格', () => _pickTheme(context)),
+                _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v2.0.0', () {}),
               ],
             );
           },
