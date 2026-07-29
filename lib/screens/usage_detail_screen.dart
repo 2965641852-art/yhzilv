@@ -214,7 +214,6 @@ class _UsageDetailScreenState extends State<UsageDetailScreen> {
       ),
     );
   }
-  }
 
   Widget _buildAppList(UsageProvider provider) {
     final apps = provider.todaySummary!.apps;
