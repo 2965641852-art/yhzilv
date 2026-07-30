@@ -56,8 +56,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           return HabitCard(
                             habit: h,
                             todayCount: count,
-                            onTap: () => _editHabit(context, h),
-                            onLongPress: () => provider.toggleComplete(h.id!),
+                            onTap: () => _checkIn(context, h.id!, h),
+                            onLongPress: () => _editHabit(context, h),
                           );
                         },
                       );
@@ -70,6 +70,49 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _checkIn(BuildContext context, int habitId, HabitModel habit) async {
+    final provider = context.read<HabitProvider>();
+    final current = await provider.getTodayCount(habitId);
+    final ctrl = TextEditingController(text: '$current');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) {
+          int count = current;
+          return AlertDialog(
+            title: Text('${habit.icon} ${habit.name}'),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('目标: ${habit.targetCount} ${habit.unit}', style: TextStyle(color: Colors.grey.shade600)),
+              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                IconButton.filled(onPressed: count > 0 ? () { setSt(() { count--; ctrl.text = '$count'; }); } : null, icon: const Icon(Icons.remove)),
+                const SizedBox(width: 16),
+                SizedBox(width: 80, child: TextField(controller: ctrl, keyboardType: TextInputType.number, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                  onChanged: (v) { final n = int.tryParse(v); if (n != null) count = n; },
+                )),
+                const SizedBox(width: 16),
+                IconButton.filled(onPressed: () { setSt(() { count++; ctrl.text = '$count'; }); }, icon: const Icon(Icons.add)),
+              ]),
+              const SizedBox(height: 8),
+              Slider(value: count.toDouble(), min: 0, max: (habit.targetCount * 2).toDouble(), divisions: habit.targetCount * 2, onChanged: (v) { setSt(() { count = v.toInt(); ctrl.text = '$count'; }); }),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              TextButton(onPressed: () { Navigator.pop(ctx); },
+                child: const Text('重置', style: TextStyle(color: Colors.grey))),
+              TextButton(onPressed: () {
+                provider.toggleHabitComplete(habitId, count);
+                Navigator.pop(ctx);
+              }, child: const Text('确定')),
+            ],
+          );
+        },
+      ),
     );
   }
 

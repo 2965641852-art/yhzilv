@@ -35,11 +35,8 @@ class HabitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleComplete(int habitId) async {
-    final current = await _db.getTodayHabitCount(habitId);
-    final habit = _habits.firstWhere((h) => h.id == habitId);
-    final newCount = current + 1;
-    await _db.toggleHabitComplete(habitId, count: newCount);
+  Future<void> toggleHabitComplete(int habitId, {int count = 1}) async {
+    await _db.toggleHabitComplete(habitId, count: count);
     notifyListeners();
   }
 
