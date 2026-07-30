@@ -106,7 +106,31 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
             ]),
             const SizedBox(height: 16),
             Text('✅ 今日 $_todayCount 次 · $_todayMin 分钟', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
-            const Divider(height: 32),
+            // 今日分类饼图（紧挨统计信息）
+            if (_todayByCat.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('今日分类', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              SizedBox(height: 160, child: Row(children: [
+                Expanded(flex: 2, child: PieChart(PieChartData(
+                  sections: _todayByCat.entries.toList().asMap().entries.map((e) {
+                    final total = _todayByCat.values.fold(0, (a, b) => a + b);
+                    final pct = total > 0 ? e.value.value / total : 0.0;
+                    final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
+                    return PieChartSectionData(value: pct, title: pct > 0.1 ? '${(pct * 100).toStringAsFixed(0)}%' : '', color: colors[e.key % colors.length], radius: 40, titleStyle: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold));
+                  }).toList(), sectionsSpace: 2, centerSpaceRadius: 15,
+                ))),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: _todayByCat.entries.toList().asMap().entries.map((e) {
+                  final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
+                  return Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(color: colors[e.key % colors.length], shape: BoxShape.circle)),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text('${e.value.key} ${e.value.value}m', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+                  ]));
+                }).toList())),
+              ])),
+            ],
+            const SizedBox(height: 16),
             // 本周柱状图
             if (_weekStats.isNotEmpty) ...[
               const Text('本周累计', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
@@ -123,46 +147,6 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
                   ),
                   barGroups: _weekStats.entries.toList().asMap().entries.map((e) => BarChartGroupData(x: e.key, barRods: [BarChartRodData(toY: e.value.value.toDouble(), color: Colors.redAccent, width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))])).toList(),
                 )),
-              ),
-            ],
-            // 今日分类饼图
-            if (_todayByCat.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text('今日分类分布', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 200,
-                child: Row(
-                  children: [
-                    Expanded(flex: 2, child: PieChart(PieChartData(
-                      sections: _todayByCat.entries.toList().asMap().entries.map((e) {
-                        final total = _todayByCat.values.fold(0, (a, b) => a + b);
-                        final pct = total > 0 ? e.value.value / total : 0.0;
-                        final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
-                        return PieChartSectionData(value: pct, title: '${(pct * 100).toStringAsFixed(0)}%', color: colors[e.key % colors.length], radius: 45, titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold));
-                      }).toList(),
-                      sectionsSpace: 2, centerSpaceRadius: 20,
-                    ))),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: _todayByCat.entries.toList().asMap().entries.map((e) {
-                          final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 3),
-                            child: Row(children: [
-                              Container(width: 10, height: 10, decoration: BoxDecoration(color: colors[e.key % colors.length], shape: BoxShape.circle)),
-                              const SizedBox(width: 6),
-                              Expanded(child: Text('${e.value.key} ${e.value.value}min', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
-                            ]),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ],
