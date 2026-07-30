@@ -76,7 +76,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
   void _checkIn(BuildContext context, int habitId, HabitModel habit) async {
     final provider = context.read<HabitProvider>();
     final current = await provider.getTodayCount(habitId);
-    final ctrl = TextEditingController(text: '$current');
 
     showDialog(
       context: context,
@@ -88,23 +87,36 @@ class _HabitsScreenState extends State<HabitsScreen> {
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('目标: ${habit.targetCount} ${habit.unit}', style: TextStyle(color: Colors.grey.shade600)),
               const SizedBox(height: 16),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                IconButton.filled(onPressed: count > 0 ? () { setSt(() { count--; ctrl.text = '$count'; }); } : null, icon: const Icon(Icons.remove)),
-                const SizedBox(width: 16),
-                SizedBox(width: 80, child: TextField(controller: ctrl, keyboardType: TextInputType.number, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-                  onChanged: (v) { final n = int.tryParse(v); if (n != null) count = n; },
-                )),
-                const SizedBox(width: 16),
-                IconButton.filled(onPressed: () { setSt(() { count++; ctrl.text = '$count'; }); }, icon: const Icon(Icons.add)),
-              ]),
-              const SizedBox(height: 8),
-              Slider(value: count.toDouble(), min: 0, max: (habit.targetCount * 2).toDouble(), divisions: habit.targetCount * 2, onChanged: (v) { setSt(() { count = v.toInt(); ctrl.text = '$count'; }); }),
+              // 数字滚轮
+              SizedBox(
+                height: 120,
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  IconButton(
+                    onPressed: count > 0 ? () => setSt(() => count--) : null,
+                    icon: const Icon(Icons.remove_circle_outline, size: 36),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 60, height: 120,
+                    child: ListWheelScrollView(
+                      itemExtent: 40,
+                      diameterRatio: 2,
+                      onSelectedItemChanged: (v) => setSt(() => count = v),
+                      controller: FixedExtentScrollController(initialItem: current),
+                      children: List.generate(habit.targetCount * 2 + 1, (i) => Center(child: Text('$i', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () => setSt(() => count++),
+                    icon: const Icon(Icons.add_circle_outline, size: 36),
+                  ),
+                ]),
+              ),
             ]),
             actions: [
+              TextButton(onPressed: () { setSt(() => count = 0); }, child: const Text('归零')),
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-              TextButton(onPressed: () { Navigator.pop(ctx); },
-                child: const Text('重置', style: TextStyle(color: Colors.grey))),
               TextButton(onPressed: () {
                 provider.toggleHabitComplete(habitId, count: count);
                 Navigator.pop(ctx);
@@ -147,7 +159,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ])),
           actions: [
             TextButton(onPressed: () { Navigator.pop(ctx); _showStats(context, h); }, child: const Text('统计')),
-            TextButton(onPressed: () { Navigator.pop(ctx); context.read<HabitProvider>().toggleHabitComplete(h.id!); }, child: const Text('打卡+1')),
             TextButton(onPressed: () { Navigator.pop(ctx); }, child: const Text('取消')),
             TextButton(onPressed: () {
               final n = nameCtrl.text.trim(); if (n.isEmpty) return;
