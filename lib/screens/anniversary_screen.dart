@@ -12,77 +12,60 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   List<AnniversaryModel> _items = [];
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final items = await AppDatabase().getAllAnniversaries();
     setState(() => _items = items);
   }
 
-  Future<void> _add() async {
-    final titleCtrl = TextEditingController();
-    DateTime date = DateTime.now();
-    bool isCountdown = true;
-    bool remindAnnually = false;
-    String icon = '📅';
+  void _showDialog({AnniversaryModel? existing}) {
+    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    DateTime date = existing?.date ?? DateTime.now();
+    bool isCountdown = existing?.isCountdown ?? true;
+    bool remindAnnually = existing?.remindAnnually ?? false;
+    String icon = existing?.icon ?? '📅';
+    final emojis = ['💕','🎂','💍','🎓','🏠','🎉','💼','📅'];
 
-    await showDialog(
+    showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          title: const Text('添加纪念日'),
+        builder: (ctx, setSt) => AlertDialog(
+          title: Text(existing != null ? '编辑纪念日' : '添加纪念日'),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: '名称', hintText: '例：恋爱纪念日'), autofocus: true),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  children: ['💕', '🎂', '💍', '🎓', '🏠', '🎉', '💼', '📅'].map((e) => GestureDetector(
-                    onTap: () => setDlgState(() => icon = e),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: icon == e ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(e, style: const TextStyle(fontSize: 24)),
-                    ),
-                  )).toList(),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text('${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final d = await showDatePicker(context: ctx, initialDate: date, firstDate: DateTime(1970), lastDate: DateTime(2100));
-                    if (d != null) setDlgState(() => date = d);
-                  },
-                ),
-                SwitchListTile(title: const Text('倒计时'), value: isCountdown, onChanged: (v) => setDlgState(() => isCountdown = v)),
-                SwitchListTile(title: const Text('每年提醒'), subtitle: const Text('生日等每年重复'), value: remindAnnually, onChanged: (v) => setDlgState(() => remindAnnually = v)),
-              ],
-            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: '名称'), autofocus: true),
+              Wrap(spacing: 8, children: emojis.map((e) => GestureDetector(
+                onTap: () => setSt(() => icon = e),
+                child: Container(padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(border: Border.all(color: icon == e ? Theme.of(ctx).colorScheme.primary : Colors.transparent, width: 2), borderRadius: BorderRadius.circular(8)),
+                  child: Text(e, style: const TextStyle(fontSize: 24))),
+              )).toList()),
+              ListTile(title: Text('${date.year}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}'),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final d = await showDatePicker(context: ctx, initialDate: date, firstDate: DateTime(1970), lastDate: DateTime(2100));
+                  if (d != null) setSt(() => date = d);
+                }),
+              SwitchListTile(title: const Text('倒计时'), value: isCountdown, onChanged: (v) => setSt(() => isCountdown = v)),
+              SwitchListTile(title: const Text('每年提醒'), value: remindAnnually, onChanged: (v) => setSt(() => remindAnnually = v)),
+            ]),
           ),
           actions: [
+            if (existing != null)
+              TextButton(onPressed: () async {
+                await AppDatabase().deleteAnniversary(existing.id!); Navigator.pop(ctx); _load();
+              }, child: const Text('删除', style: TextStyle(color: Colors.red))),
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
             TextButton(onPressed: () async {
-              final name = titleCtrl.text.trim();
-              if (name.isEmpty) return;
-              try {
-                await AppDatabase().insertAnniversary(AnniversaryModel(
-                  title: name, date: date, isCountdown: isCountdown, remindAnnually: remindAnnually, icon: icon,
-                ));
-                Navigator.pop(ctx);
-                _load();
-              } catch (e) {
-                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('添加失败: $e')));
+              final name = titleCtrl.text.trim(); if (name.isEmpty) return;
+              if (existing != null) {
+                await AppDatabase().updateAnniversary(existing.copyWith(title: name, date: date, isCountdown: isCountdown, remindAnnually: remindAnnually, icon: icon));
+              } else {
+                await AppDatabase().insertAnniversary(AnniversaryModel(title: name, date: date, isCountdown: isCountdown, remindAnnually: remindAnnually, icon: icon));
               }
-            }, child: const Text('添加')),
+              Navigator.pop(ctx); _load();
+            }, child: const Text('保存')),
           ],
         ),
       ),
@@ -99,52 +82,31 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               padding: const EdgeInsets.all(16),
               itemCount: _items.length,
               itemBuilder: (ctx, i) {
-                final a = _items[i];
-                final diff = a.daysDiff;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
-                        Text(a.icon, style: const TextStyle(fontSize: 36)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(child: Text(a.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16))),
-                                  if (a.remindAnnually) const Icon(Icons.repeat, size: 14, color: Colors.orange),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(a.displayText, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                              if (a.yearsPassed > 0 && a.daysToNext > 0 && a.daysToNext < 365)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text('🗓 距${a.yearsPassed + 1}周年还有 ${a.daysToNext} 天',
-                                    style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
-                                ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            Text('${diff.abs()}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
-                              color: diff == 0 ? Colors.orange : diff < 0 ? Colors.blue : Colors.green)),
-                            Text(diff == 0 ? '今天!' : '天', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                          ],
-                        ),
-                      ],
-                    ),
+                final a = _items[i]; final diff = a.daysDiff;
+                return GestureDetector(
+                  onTap: () => _showDialog(existing: a),
+                  child: Card(margin: const EdgeInsets.only(bottom: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(padding: const EdgeInsets.all(14), child: Row(children: [
+                      Text(a.icon, style: const TextStyle(fontSize: 36)), const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(child: Text(a.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16))),
+                          if (a.remindAnnually) const Icon(Icons.repeat, size: 14, color: Colors.orange),
+                        ]),
+                        Text(a.displayText, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                        if (a.yearsPassed > 0 && a.daysToNext > 0 && a.daysToNext < 365)
+                          Text('🗓 距${a.yearsPassed + 1}周年还有 ${a.daysToNext} 天', style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                      ])),
+                      Column(children: [
+                        Text('${diff.abs()}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: diff == 0 ? Colors.orange : diff < 0 ? Colors.blue : Colors.green)),
+                        Text(diff == 0 ? '今天!' : '天', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      ]),
+                    ])),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(onPressed: _add, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(onPressed: () => _showDialog(), child: const Icon(Icons.add)),
     );
   }
 }

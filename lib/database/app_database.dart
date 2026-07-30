@@ -483,6 +483,16 @@ class AppDatabase {
     }
   }
 
+  Future<int> updateAnniversary(AnniversaryModel a) async {
+    final db = await database;
+    return await db.update('anniversaries', a.toMap(), where: 'id = ?', whereArgs: [a.id]);
+  }
+
+  Future<int> deleteAnniversary(int id) async {
+    final db = await database;
+    return await db.delete('anniversaries', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<AnniversaryModel>> getAllAnniversaries() async {
     final db = await database;
     final maps = await db.query('anniversaries', orderBy: 'date ASC');

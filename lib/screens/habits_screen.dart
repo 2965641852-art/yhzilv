@@ -56,8 +56,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           return HabitCard(
                             habit: h,
                             todayCount: count,
-                            onTap: () => provider.toggleComplete(h.id!),
-                            onLongPress: () => _showStats(context, h),
+                            onTap: () => _editHabit(context, h),
+                            onLongPress: () => provider.toggleComplete(h.id!),
                           );
                         },
                       );
@@ -70,6 +70,50 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _editHabit(BuildContext context, HabitModel h) {
+    final nameCtrl = TextEditingController(text: h.name);
+    final countCtrl = TextEditingController(text: '${h.targetCount}');
+    String unit = h.unit;
+    String icon = h.icon;
+    final emojis = ['✅','📚','🏃','💪','🧘','🎯','📝','💧','🍎','🌿','🎵','✍️','💻','🔬','📖','🛏','🚿','💊','🧠','🎨'];
+    final units = ['次','分钟','个','页','杯','公里','组','小时'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          title: const Text('编辑习惯'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '习惯名')),
+            const SizedBox(height: 10),
+            Wrap(spacing: 6, children: emojis.map((e) => GestureDetector(
+              onTap: () => setSt(() => icon = e),
+              child: Container(padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(border: Border.all(color: icon == e ? Theme.of(ctx).colorScheme.primary : Colors.transparent, width: 2), borderRadius: BorderRadius.circular(8)),
+                child: Text(e, style: const TextStyle(fontSize: 24))),
+            )).toList()),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: TextField(controller: countCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: '目标'))),
+              const SizedBox(width: 10),
+              SizedBox(width: 100, child: DropdownButtonFormField<String>(value: unit, items: units.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(), onChanged: (v) => setSt(() => unit = v!), decoration: const InputDecoration(labelText: '单位'))),
+            ]),
+          ])),
+          actions: [
+            TextButton(onPressed: () { Navigator.pop(ctx); _showStats(context, h); }, child: const Text('统计')),
+            TextButton(onPressed: () { Navigator.pop(ctx); context.read<HabitProvider>().toggleComplete(h.id!); }, child: const Text('打卡+1')),
+            TextButton(onPressed: () { Navigator.pop(ctx); }, child: const Text('取消')),
+            TextButton(onPressed: () {
+              final n = nameCtrl.text.trim(); if (n.isEmpty) return;
+              context.read<HabitProvider>().updateHabit(h.copyWith(name: n, targetCount: int.tryParse(countCtrl.text) ?? 1, unit: unit, icon: icon));
+              Navigator.pop(ctx);
+            }, child: const Text('保存')),
+          ],
+        ),
+      ),
     );
   }
 
