@@ -1,4 +1,4 @@
-name: 构建 APK
+name: 构建
 
 on:
   push:
@@ -6,44 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin' }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.22.0', channel: 'stable' }
 
-      - name: 设置 Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: 设置 Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.0'
-          channel: 'stable'
-
-      - name: 缓存签名密钥
-        id: cache-keystore
+      - id: cache-keystore
         uses: actions/cache@v4
-        with:
-          path: android/app/yeheng.keystore
-          key: yeheng-keystore-v1
+        with: { path: android/app/yeheng.keystore, key: yeheng-keystore-v1 }
 
-      - name: 生成签名密钥（仅首次）
-        if: steps.cache-keystore.outputs.cache-hit != 'true'
+      - if: steps.cache-keystore.outputs.cache-hit != 'true'
         run: |
-          keytool -genkey -v \
-            -keystore android/app/yeheng.keystore \
-            -alias yeheng \
+          keytool -genkey -v -keystore android/app/yeheng.keystore -alias yeheng \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass yeheng123 -keypass yeheng123 \
             -dname "CN=Yeheng, OU=D, O=YH, L=BJ, ST=BJ, C=CN"
 
-      - name: 补全资源
-        run: |
+      - run: |
           echo '{"project_type":"app"}' > .metadata
           mkdir -p android/app/src/main/res/mipmap-hdpi
           mkdir -p android/app/src/main/res/mipmap-mdpi
@@ -51,14 +34,26 @@ jobs:
           mkdir -p android/app/src/main/res/mipmap-xxhdpi
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
 
-      - name: 安装依赖
-        run: flutter pub get
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with: { name: android-app, path: build/app/outputs/flutter-apk/app-release.apk }
 
-      - name: 构建 Release APK
-        run: flutter build apk --release
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.22.0', channel: 'stable' }
 
-      - name: 上传 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+      - run: echo '{"project_type":"app"}' > .metadata
+      - run: flutter pub get
+      - run: flutter build ios --no-codesign --release
+
+      - name: 打包 IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r app.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with: { name: ios-app, path: app.ipa }
