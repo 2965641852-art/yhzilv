@@ -417,7 +417,12 @@ class AppDatabase {
 
   Future<int> insertHabit(HabitModel habit) async {
     final db = await database;
-    return await db.insert('habits', habit.toMap());
+    try { return await db.insert('habits', habit.toMap()); }
+    on DatabaseException catch (_) {
+      await db.execute('CREATE TABLE IF NOT EXISTS habits (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, icon TEXT DEFAULT "✅", target_count INTEGER DEFAULT 1, unit TEXT DEFAULT "次", category TEXT DEFAULT "默认", created_at INTEGER NOT NULL, is_archived INTEGER DEFAULT 0)');
+      await db.execute('CREATE TABLE IF NOT EXISTS habit_completions (id INTEGER PRIMARY KEY AUTOINCREMENT, habit_id INTEGER NOT NULL, date INTEGER NOT NULL, count INTEGER DEFAULT 1, FOREIGN KEY (habit_id) REFERENCES habits(id), UNIQUE(habit_id, date))');
+      return await db.insert('habits', habit.toMap());
+    }
   }
 
   Future<List<HabitModel>> getAllHabits() async {
@@ -471,7 +476,11 @@ class AppDatabase {
 
   Future<int> insertAnniversary(AnniversaryModel a) async {
     final db = await database;
-    return await db.insert('anniversaries', a.toMap());
+    try { return await db.insert('anniversaries', a.toMap()); }
+    on DatabaseException catch (_) {
+      await db.execute("CREATE TABLE IF NOT EXISTS anniversaries (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, date INTEGER NOT NULL, is_countdown INTEGER DEFAULT 1, icon TEXT DEFAULT '📅', remind_annually INTEGER DEFAULT 0)");
+      return await db.insert('anniversaries', a.toMap());
+    }
   }
 
   Future<List<AnniversaryModel>> getAllAnniversaries() async {
@@ -484,7 +493,11 @@ class AppDatabase {
 
   Future<int> insertPomodoro(PomodoroRecord r) async {
     final db = await database;
-    return await db.insert('pomodoro_records', r.toMap());
+    try { return await db.insert('pomodoro_records', r.toMap()); }
+    on DatabaseException catch (_) {
+      await db.execute('CREATE TABLE IF NOT EXISTS pomodoro_records (id INTEGER PRIMARY KEY AUTOINCREMENT, duration INTEGER NOT NULL, category TEXT DEFAULT "学习", date INTEGER NOT NULL, completed INTEGER DEFAULT 1)');
+      return await db.insert('pomodoro_records', r.toMap());
+    }
   }
 
   Future<List<PomodoroRecord>> getPomodoroToday() async {
