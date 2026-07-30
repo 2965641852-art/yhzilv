@@ -71,13 +71,16 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
             TextButton(onPressed: () async {
-              if (titleCtrl.text.trim().isNotEmpty) {
+              final name = titleCtrl.text.trim();
+              if (name.isEmpty) return;
+              try {
                 await AppDatabase().insertAnniversary(AnniversaryModel(
-                  title: titleCtrl.text.trim(), date: date, isCountdown: isCountdown,
-                  remindAnnually: remindAnnually, icon: icon,
+                  title: name, date: date, isCountdown: isCountdown, remindAnnually: remindAnnually, icon: icon,
                 ));
                 Navigator.pop(ctx);
                 _load();
+              } catch (e) {
+                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('添加失败: $e')));
               }
             }, child: const Text('添加')),
           ],

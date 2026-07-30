@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../database/app_database.dart';
 import '../services/notification_service.dart';
-import 'pomodoro_screen.dart';
 import 'anniversary_screen.dart';
 import '../app_theme.dart';
 import '../main.dart';
@@ -142,9 +141,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            _buildMenuItem(Icons.timer, '番茄专注', '自定义时间 + 分类统计', () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const PomodoroScreen()));
-            }),
             _buildMenuItem(Icons.favorite, '纪念日', '重要日期倒计时与正计时', () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
             }),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'todo_list_screen.dart';
 import 'habits_screen.dart';
-import 'stats_screen.dart';
+import 'pomodoro_screen.dart';
 import 'memo_list_screen.dart';
 import 'profile_screen.dart';
 
@@ -14,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = const [
-    TodoListScreen(), HabitsScreen(), StatsScreen(), MemoListScreen(), ProfileScreen(),
+    TodoListScreen(), HabitsScreen(), PomodoroScreen(), MemoListScreen(), ProfileScreen(),
   ];
 
   @override
@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.checklist_rounded), label: '待办'),
             BottomNavigationBarItem(icon: Icon(Icons.repeat_rounded), label: '习惯'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: '统计'),
+            BottomNavigationBarItem(icon: Icon(Icons.timer), label: '番茄'),
             BottomNavigationBarItem(icon: Icon(Icons.note_alt_outlined), label: '备忘录'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '我的'),
           ],

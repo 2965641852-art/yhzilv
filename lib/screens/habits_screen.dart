@@ -76,47 +76,52 @@ class _HabitsScreenState extends State<HabitsScreen> {
   void _addHabit(BuildContext context) {
     final nameCtrl = TextEditingController();
     final countCtrl = TextEditingController(text: '1');
-    final unitCtrl = TextEditingController(text: '次');
-    final iconCtrl = TextEditingController(text: '✅');
+    String unit = '次';
+    String icon = '✅';
+    final emojis = ['✅', '📚', '🏃', '💪', '🧘', '🎯', '📝', '💧', '🍎', '🌿', '🎵', '✍️', '💻', '🔬', '📖', '🛏', '🚿', '💊', '🧠', '🎨'];
+    final units = ['次', '分钟', '个', '页', '杯', '公里', '组', '小时'];
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('新建习惯'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          title: const Text('新建习惯'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '习惯名'), autofocus: true),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: countCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: '目标'))),
-                  const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: '单位'))),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(controller: iconCtrl, decoration: const InputDecoration(labelText: '图标(emoji)')),
-            ],
+              const SizedBox(height: 10),
+              Wrap(spacing: 6, children: emojis.map((e) => GestureDetector(
+                onTap: () => setSt(() => icon = e),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(border: Border.all(color: icon == e ? Theme.of(ctx).colorScheme.primary : Colors.transparent, width: 2), borderRadius: BorderRadius.circular(8)),
+                  child: Text(e, style: const TextStyle(fontSize: 24)),
+                ),
+              )).toList()),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: TextField(controller: countCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: '目标'))),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 100,
+                  child: DropdownButtonFormField<String>(
+                    value: unit, items: units.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                    onChanged: (v) => setSt(() => unit = v!),
+                    decoration: const InputDecoration(labelText: '单位'),
+                  ),
+                ),
+              ]),
+            ]),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty) return;
-              context.read<HabitProvider>().addHabit(HabitModel(
-                name: name,
-                targetCount: int.tryParse(countCtrl.text) ?? 1,
-                unit: unitCtrl.text.isNotEmpty ? unitCtrl.text : '次',
-                icon: iconCtrl.text.isNotEmpty ? iconCtrl.text : '✅',
-              ));
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            TextButton(onPressed: () {
+              final name = nameCtrl.text.trim(); if (name.isEmpty) return;
+              context.read<HabitProvider>().addHabit(HabitModel(name: name, targetCount: int.tryParse(countCtrl.text) ?? 1, unit: unit, icon: icon));
               Navigator.pop(ctx);
-            },
-            child: const Text('添加'),
-          ),
-        ],
+            }, child: const Text('添加')),
+          ],
+        ),
       ),
     );
   }
