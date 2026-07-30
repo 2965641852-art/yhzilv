@@ -70,9 +70,9 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-            TextButton(onPressed: () {
+            TextButton(onPressed: () async {
               if (titleCtrl.text.trim().isNotEmpty) {
-                AppDatabase().insertAnniversary(AnniversaryModel(
+                await AppDatabase().insertAnniversary(AnniversaryModel(
                   title: titleCtrl.text.trim(), date: date, isCountdown: isCountdown,
                   remindAnnually: remindAnnually, icon: icon,
                 ));

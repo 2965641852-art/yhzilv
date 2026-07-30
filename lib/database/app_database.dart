@@ -5,6 +5,7 @@ import '../models/usage_model.dart';
 import '../models/memo_model.dart';
 import '../models/habit_model.dart';
 import '../models/anniversary_model.dart';
+import '../models/pomodoro_model.dart';
 
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
@@ -25,7 +26,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -154,6 +155,17 @@ class AppDatabase {
     }
     if (oldVersion < 6) {
       await db.execute("ALTER TABLE anniversaries ADD COLUMN remind_annually INTEGER DEFAULT 0");
+    }
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE pomodoro_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          duration INTEGER NOT NULL,
+          category TEXT DEFAULT '学习',
+          date INTEGER NOT NULL,
+          completed INTEGER DEFAULT 1
+        )
+      ''');
     }
   }
 
@@ -421,6 +433,37 @@ class AppDatabase {
     final db = await database;
     final maps = await db.query('anniversaries', orderBy: 'date ASC');
     return maps.map((m) => AnniversaryModel.fromMap(m)).toList();
+  }
+
+  // ========== 番茄记录 CRUD ==========
+
+  Future<int> insertPomodoro(PomodoroRecord r) async {
+    final db = await database;
+    return await db.insert('pomodoro_records', r.toMap());
+  }
+
+  Future<List<PomodoroRecord>> getPomodoroToday() async {
+    final db = await database;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final end = DateTime(now.year, now.month, now.day, 23, 59, 59).millisecondsSinceEpoch;
+    final maps = await db.query('pomodoro_records', where: 'date >= ? AND date <= ?', whereArgs: [start, end]);
+    return maps.map((m) => PomodoroRecord.fromMap(m)).toList();
+  }
+
+  Future<Map<String, int>> getPomodoroWeekStats() async {
+    final db = await database;
+    final now = DateTime.now();
+    final result = <String, int>{};
+    for (int i = 6; i >= 0; i--) {
+      final d = now.subtract(Duration(days: i));
+      final start = DateTime(d.year, d.month, d.day).millisecondsSinceEpoch;
+      final end = DateTime(d.year, d.month, d.day, 23, 59, 59).millisecondsSinceEpoch;
+      final maps = await db.query('pomodoro_records', where: 'date >= ? AND date <= ?', whereArgs: [start, end]);
+      final total = maps.fold<int>(0, (s, m) => s + (m['duration'] as int));
+      result['${d.month}/${d.day}'] = total;
+    }
+    return result;
   }
 
   // ========== 设置 ==========

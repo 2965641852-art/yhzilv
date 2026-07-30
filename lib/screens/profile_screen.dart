@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../database/app_database.dart';
-import '../providers/usage_provider.dart';
 import '../services/notification_service.dart';
-import 'usage_detail_screen.dart';
 import 'pomodoro_screen.dart';
 import 'anniversary_screen.dart';
 import '../app_theme.dart';
@@ -111,66 +108,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_loaded) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('我的'),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('我的'), centerTitle: true, elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Consumer<UsageProvider>(
-          builder: (context, usageProvider, child) {
-            return Column(
-              children: [
-                // 用户卡片
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Theme.of(context).colorScheme.primary.withOpacity(0.8), Theme.of(context).colorScheme.primary],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      const CircleAvatar(radius: 36, backgroundColor: Colors.white, child: Icon(Icons.person, size: 36)),
-                      const SizedBox(height: 12),
-                      const Text('叶恒', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(height: 6),
-                      GestureDetector(
-                        onTap: _editSignature,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(child: Text(_signature, style: const TextStyle(fontSize: 13, color: Colors.white70), overflow: TextOverflow.ellipsis)),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.edit, size: 14, color: Colors.white54),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+        child: Column(
+          children: [
+            // 用户卡片
+            Container(
+              width: double.infinity, padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary.withOpacity(0.8), Theme.of(context).colorScheme.primary],
                 ),
-                const SizedBox(height: 24),
-
-                _buildMenuItem(Icons.bar_chart_rounded, '使用时长详情', '查看各应用使用统计', () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const UsageDetailScreen()));
-                }),
-                _buildMenuItem(Icons.timer_off, '应用使用限额', '设置各应用每日使用时长上限', () => _showLimitDialog(context, usageProvider)),
-                const SizedBox(height: 16), const Divider(),
-                _buildMenuItem(Icons.timer, '番茄专注', '25分钟专注 + 5分钟休息', () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const PomodoroScreen()));
-                }),
-                _buildMenuItem(Icons.favorite, '纪念日', '重要日期倒计时与正计时', () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
-                }),
-                _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () => _pickDailyReminder(context)),
-                _buildMenuItem(Icons.palette_outlined, '主题配色', '选择你喜欢的配色风格', () => _pickTheme(context)),
-                _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v2.0.0', () {}),
-              ],
-            );
-          },
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const CircleAvatar(radius: 36, backgroundColor: Colors.white, child: Icon(Icons.person, size: 36)),
+                  const SizedBox(height: 12),
+                  const Text('叶恒', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: _editSignature,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(child: Text(_signature, style: const TextStyle(fontSize: 13, color: Colors.white70), overflow: TextOverflow.ellipsis)),
+                        const SizedBox(width: 4), const Icon(Icons.edit, size: 14, color: Colors.white54),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildMenuItem(Icons.timer, '番茄专注', '自定义时间 + 分类统计', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PomodoroScreen()));
+            }),
+            _buildMenuItem(Icons.favorite, '纪念日', '重要日期倒计时与正计时', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
+            }),
+            _buildMenuItem(Icons.notifications_outlined, '每日打卡提醒', '设置每日早晚打卡时间', () => _pickDailyReminder(context)),
+            _buildMenuItem(Icons.palette_outlined, '主题配色', '选择你喜欢的配色风格', () => _pickTheme(context)),
+            _buildMenuItem(Icons.info_outline, '关于', '叶恒的自律生活 v2.1.0', () {}),
+          ],
         ),
       ),
     );
@@ -187,55 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: onTap,
-      ),
-    );
-  }
-
-  void _showLimitDialog(BuildContext context, UsageProvider provider) {
-    final controller = TextEditingController();
-    String selectedApp = '';
-    final apps = provider.todayUsage;
-    if (apps.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先加载使用时长数据'))); return; }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('设置应用使用限额', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedApp.isEmpty ? null : selectedApp,
-                decoration: InputDecoration(labelText: '选择应用', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                items: apps.map((a) => DropdownMenuItem(value: a.packageName, child: Text(a.appName))).toList(),
-                onChanged: (v) => setSheetState(() => selectedApp = v ?? ''),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: '每日限额（分钟）', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), suffixIcon: const Icon(Icons.timer)),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  final m = int.tryParse(controller.text);
-                  if (selectedApp.isNotEmpty && m != null && m > 0) {
-                    provider.setLimit(selectedApp, m); Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: const Text('保存设置'),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
