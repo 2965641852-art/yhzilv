@@ -88,6 +88,51 @@ class AppDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE habits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        icon TEXT DEFAULT '✅',
+        target_count INTEGER DEFAULT 1,
+        unit TEXT DEFAULT '次',
+        category TEXT DEFAULT '默认',
+        created_at INTEGER NOT NULL,
+        is_archived INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE habit_completions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        habit_id INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        count INTEGER DEFAULT 1,
+        FOREIGN KEY (habit_id) REFERENCES habits(id),
+        UNIQUE(habit_id, date)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE anniversaries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        is_countdown INTEGER DEFAULT 1,
+        icon TEXT DEFAULT '📅',
+        remind_annually INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE pomodoro_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        duration INTEGER NOT NULL,
+        category TEXT DEFAULT '学习',
+        date INTEGER NOT NULL,
+        completed INTEGER DEFAULT 1
+      )
+    ''');
+
     for (final category in TodoCategory.defaults) {
       await db.insert('categories', {'name': category});
     }
