@@ -106,7 +106,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               TextButton(onPressed: () { Navigator.pop(ctx); },
                 child: const Text('重置', style: TextStyle(color: Colors.grey))),
               TextButton(onPressed: () {
-                provider.toggleHabitComplete(habitId, count);
+                provider.toggleHabitComplete(habitId, count: count);
                 Navigator.pop(ctx);
               }, child: const Text('确定')),
             ],
@@ -147,7 +147,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ])),
           actions: [
             TextButton(onPressed: () { Navigator.pop(ctx); _showStats(context, h); }, child: const Text('统计')),
-            TextButton(onPressed: () { Navigator.pop(ctx); context.read<HabitProvider>().toggleComplete(h.id!); }, child: const Text('打卡+1')),
+            TextButton(onPressed: () { Navigator.pop(ctx); context.read<HabitProvider>().toggleHabitComplete(h.id!); }, child: const Text('打卡+1')),
             TextButton(onPressed: () { Navigator.pop(ctx); }, child: const Text('取消')),
             TextButton(onPressed: () {
               final n = nameCtrl.text.trim(); if (n.isEmpty) return;
