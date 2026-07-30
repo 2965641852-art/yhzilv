@@ -76,46 +76,43 @@ class _HabitsScreenState extends State<HabitsScreen> {
   void _checkIn(BuildContext context, int habitId, HabitModel habit) async {
     final provider = context.read<HabitProvider>();
     final current = await provider.getTodayCount(habitId);
+    int count = current; // 放在 builder 外面，setSt 重建不会重置
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) {
-          int count = current;
           return AlertDialog(
             title: Text('${habit.icon} ${habit.name}'),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('目标: ${habit.targetCount} ${habit.unit}', style: TextStyle(color: Colors.grey.shade600)),
               const SizedBox(height: 16),
-              // 数字滚轮
               SizedBox(
                 height: 120,
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   IconButton(
-                    onPressed: count > 0 ? () => setSt(() => count--) : null,
+                    onPressed: count > 0 ? () { count--; setSt(() {}); } : null,
                     icon: const Icon(Icons.remove_circle_outline, size: 36),
                   ),
                   const SizedBox(width: 12),
                   SizedBox(
                     width: 60, height: 120,
                     child: ListWheelScrollView(
-                      itemExtent: 40,
-                      diameterRatio: 2,
-                      onSelectedItemChanged: (v) => setSt(() => count = v),
-                      controller: FixedExtentScrollController(initialItem: current),
-                      children: List.generate(habit.targetCount * 2 + 1, (i) => Center(child: Text('$i', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
+                      itemExtent: 40, diameterRatio: 2,
+                      onSelectedItemChanged: (v) { count = v; setSt(() {}); },
+                      children: List.generate(habit.targetCount * 5 + 1, (i) => Center(child: Text('$i', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
                     ),
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    onPressed: () => setSt(() => count++),
+                    onPressed: () { count++; setSt(() {}); },
                     icon: const Icon(Icons.add_circle_outline, size: 36),
                   ),
                 ]),
               ),
             ]),
             actions: [
-              TextButton(onPressed: () { setSt(() => count = 0); }, child: const Text('归零')),
+              TextButton(onPressed: () { count = 0; setSt(() {}); }, child: const Text('归零')),
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
               TextButton(onPressed: () {
                 provider.toggleHabitComplete(habitId, count: count);
