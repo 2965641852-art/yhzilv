@@ -466,6 +466,20 @@ class AppDatabase {
     return result;
   }
 
+  Future<Map<String, int>> getPomodoroTodayByCategory() async {
+    final db = await database;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final end = DateTime(now.year, now.month, now.day, 23, 59, 59).millisecondsSinceEpoch;
+    final maps = await db.query('pomodoro_records', where: 'date >= ? AND date <= ?', whereArgs: [start, end]);
+    final result = <String, int>{};
+    for (final m in maps) {
+      final cat = m['category'] as String;
+      result[cat] = (result[cat] ?? 0) + (m['duration'] as int);
+    }
+    return result;
+  }
+
   // ========== 设置 ==========
 
   Future<String?> getSetting(String key) async {

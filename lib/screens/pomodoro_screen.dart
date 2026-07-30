@@ -14,6 +14,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   int _workMin = 25, _breakMin = 5, _remaining = 25 * 60;
   bool _isRunning = false, _isWork = true;
   int _todayCount = 0, _todayMin = 0;
+  Map<String, int> _todayByCat = {};
   String _category = '学习';
   Timer? _timer;
   late AnimationController _anim;
@@ -30,7 +31,8 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
 
   Future<void> _loadToday() async {
     final records = await AppDatabase().getPomodoroToday();
-    setState(() { _todayCount = records.length; _todayMin = records.fold(0, (s, r) => s + r.duration); });
+    final byCat = await AppDatabase().getPomodoroTodayByCategory();
+    setState(() { _todayCount = records.length; _todayMin = records.fold(0, (s, r) => s + r.duration); _todayByCat = byCat; });
   }
 
   Future<void> _loadWeek() async {
@@ -105,20 +107,64 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
             const SizedBox(height: 16),
             Text('✅ 今日 $_todayCount 次 · $_todayMin 分钟', style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
             const Divider(height: 32),
-            // 本周统计柱状图
-            if (_weekStats.isNotEmpty) SizedBox(
-              height: 180, width: double.infinity,
-              child: BarChart(BarChartData(
-                alignment: BarChartAlignment.spaceAround, maxY: (_weekStats.values.reduce((a, b) => a > b ? a : b) * 1.3).toDouble(),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32, getTitlesWidget: (v, _) => Text('${v.toInt()}m', style: const TextStyle(fontSize: 10)))),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 4), child: Text(_weekStats.keys.toList()[v.toInt()], style: const TextStyle(fontSize: 10))))),
+            // 本周柱状图
+            if (_weekStats.isNotEmpty) ...[
+              const Text('本周累计', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 180, width: double.infinity,
+                child: BarChart(BarChartData(
+                  alignment: BarChartAlignment.spaceAround, maxY: (_weekStats.values.reduce((a, b) => a > b ? a : b) * 1.3).toDouble(),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32, getTitlesWidget: (v, _) => Text('${v.toInt()}m', style: const TextStyle(fontSize: 10)))),
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 4), child: Text(_weekStats.keys.toList()[v.toInt()], style: const TextStyle(fontSize: 10))))),
+                  ),
+                  barGroups: _weekStats.entries.toList().asMap().entries.map((e) => BarChartGroupData(x: e.key, barRods: [BarChartRodData(toY: e.value.value.toDouble(), color: Colors.redAccent, width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))])).toList(),
+                )),
+              ),
+            ],
+            // 今日分类饼图
+            if (_todayByCat.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text('今日分类分布', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 200,
+                child: Row(
+                  children: [
+                    Expanded(flex: 2, child: PieChart(PieChartData(
+                      sections: _todayByCat.entries.toList().asMap().entries.map((e) {
+                        final total = _todayByCat.values.fold(0, (a, b) => a + b);
+                        final pct = total > 0 ? e.value.value / total : 0.0;
+                        final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
+                        return PieChartSectionData(value: pct, title: '${(pct * 100).toStringAsFixed(0)}%', color: colors[e.key % colors.length], radius: 45, titleStyle: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold));
+                      }).toList(),
+                      sectionsSpace: 2, centerSpaceRadius: 20,
+                    ))),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: _todayByCat.entries.toList().asMap().entries.map((e) {
+                          final colors = [Colors.blue.shade400, Colors.green.shade400, Colors.orange.shade400, Colors.purple.shade400, Colors.teal.shade400, Colors.red.shade300, Colors.amber.shade400];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Row(children: [
+                              Container(width: 10, height: 10, decoration: BoxDecoration(color: colors[e.key % colors.length], shape: BoxShape.circle)),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text('${e.value.key} ${e.value.value}min', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            ]),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                 ),
-                barGroups: _weekStats.entries.toList().asMap().entries.map((e) => BarChartGroupData(x: e.key, barRods: [BarChartRodData(toY: e.value.value.toDouble(), color: Colors.redAccent, width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))])).toList(),
-              )),
-            ),
+              ),
+            ],
           ],
         ),
       ),
