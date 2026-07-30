@@ -100,7 +100,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     child: ListWheelScrollView(
                       itemExtent: 40, diameterRatio: 2,
                       onSelectedItemChanged: (v) { count = v; setSt(() {}); },
-                      children: List.generate(habit.targetCount * 5 + 1, (i) => Center(child: Text('$i', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
+                      children: List.generate(habit.targetCount * 10 + 1, (i) => Center(child: Text('$i', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
                     ),
                   ),
                   const SizedBox(width: 12),
