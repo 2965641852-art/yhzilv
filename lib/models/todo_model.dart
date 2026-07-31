@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:intl/intl.dart';
 
 enum TodoPriority { low, medium, high }
 enum TodoStatus { pending, completed, expired }
-enum TodoType { normal, daily, disposable } // normal=普通, daily=当日完成, disposable=完成即删
+
+/// 任务类型: disposable=完成即删, oneDay=某日完成, custom=自定义规则
+enum TodoType { disposable, oneDay, custom }
 
 class TodoModel {
   final int? id;
@@ -10,16 +13,15 @@ class TodoModel {
   final String description;
   final TodoPriority priority;
   final String category;
-  final DateTime? dueDate;
+  final TodoType type;
+  final String repeatRule; // JSON: {"mode":"daily"} | {"mode":"weekly","days":[0,6]} | {"mode":"range","start":"...","end":"..."}
   final DateTime? remindTime;
   final bool isCompleted;
-  final bool isDaily;
-  final int? durationMinutes;
-  final String? lastCompletedDate;
-  final TodoType todoType; // 0=normal, 1=daily(当日), 2=disposable(完成即删)
   final int sortOrder;
-  final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? dueDate;
+  final String? lastCompletedDate;
+  final DateTime createdAt;
 
   TodoModel({
     this.id,
@@ -27,92 +29,91 @@ class TodoModel {
     this.description = '',
     this.priority = TodoPriority.medium,
     this.category = '其他',
-    this.dueDate,
+    this.type = TodoType.disposable,
+    this.repeatRule = '',
     this.remindTime,
     this.isCompleted = false,
-    this.isDaily = false,
-    this.durationMinutes,
-    this.lastCompletedDate,
-    this.todoType = TodoType.normal,
     this.sortOrder = 0,
-    DateTime? createdAt,
     this.completedAt,
+    this.dueDate,
+    this.lastCompletedDate,
+    DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
   TodoStatus get status {
     if (isCompleted) return TodoStatus.completed;
-    if (dueDate != null && dueDate!.isBefore(DateTime.now())) return TodoStatus.expired;
     return TodoStatus.pending;
   }
 
   String get priorityText {
-    switch (priority) {
-      case TodoPriority.low: return '低';
-      case TodoPriority.medium: return '中';
-      case TodoPriority.high: return '高';
-    }
-  }
-
-  String get formattedDate {
-    if (dueDate == null) return '';
-    return DateFormat('MM/dd HH:mm').format(dueDate!);
-  }
-
-  String get durationText {
-    if (durationMinutes == null || durationMinutes == 0) return '';
-    if (durationMinutes! >= 60) { final h = durationMinutes! ~/ 60; final m = durationMinutes! % 60; return m > 0 ? '${h}h${m}m' : '${h}h'; }
-    return '${durationMinutes}m';
+    switch (priority) { case TodoPriority.low: return '低'; case TodoPriority.medium: return '中'; case TodoPriority.high: return '高'; }
   }
 
   String get typeLabel {
-    switch (todoType) {
-      case TodoType.daily: return '某日';
-      case TodoType.disposable: return '即删';
-      default: return '';
+    switch (type) { case TodoType.disposable: return '即删'; case TodoType.oneDay: return '某日'; case TodoType.custom: return '自定义'; }
+  }
+
+  /// 判断任务在指定日期是否应该显示
+  bool shouldShowOn(DateTime date) {
+    if (type == TodoType.disposable) return true;
+    if (type == TodoType.oneDay) {
+      if (dueDate == null) return false;
+      return date.year == dueDate!.year && date.month == dueDate!.month && date.day == dueDate!.day;
     }
+    // custom: 根据 repeatRule 判断
+    if (repeatRule.isEmpty) return true;
+    try {
+      final rule = jsonDecode(repeatRule);
+      final mode = rule['mode'] as String;
+      final dow = date.weekday % 7; // 周日=0, 周一=1...周六=6
+      switch (mode) {
+        case 'daily': return true;
+        case 'weekly':
+          final days = (rule['days'] as List).cast<int>();
+          return days.contains(dow);
+        case 'workday': return dow >= 1 && dow <= 5;
+        case 'weekend': return dow == 0 || dow == 6;
+        case 'range':
+          final start = DateTime.parse(rule['start']);
+          final end = DateTime.parse(rule['end']);
+          final d = DateTime(date.year, date.month, date.day);
+          return !d.isBefore(start) && !d.isAfter(end);
+        default: return true;
+      }
+    } catch (_) { return true; }
   }
 
   Map<String, dynamic> toMap() => {
     if (id != null) 'id': id, 'title': title, 'description': description,
-    'priority': priority.index, 'category': category,
-    'due_date': dueDate?.millisecondsSinceEpoch, 'remind_time': remindTime?.millisecondsSinceEpoch,
-    'is_completed': isCompleted ? 1 : 0, 'is_daily': isDaily ? 1 : 0,
-    'duration_minutes': durationMinutes, 'last_completed_date': lastCompletedDate,
-    'todo_type': todoType.index, 'sort_order': sortOrder,
-    'created_at': createdAt.millisecondsSinceEpoch, 'completed_at': completedAt?.millisecondsSinceEpoch,
+    'priority': priority.index, 'category': category, 'type': type.index,
+    'repeat_rule': repeatRule, 'remind_time': remindTime?.millisecondsSinceEpoch,
+    'is_completed': isCompleted ? 1 : 0, 'sort_order': sortOrder,
+    'completed_at': completedAt?.millisecondsSinceEpoch, 'due_date': dueDate?.millisecondsSinceEpoch,
+    'last_completed_date': lastCompletedDate, 'created_at': createdAt.millisecondsSinceEpoch,
   };
 
   factory TodoModel.fromMap(Map<String, dynamic> m) => TodoModel(
-    id: m['id'] as int?, title: m['title'] as String,
-    description: m['description'] as String? ?? '',
-    priority: TodoPriority.values[m['priority'] as int? ?? 1],
-    category: m['category'] as String? ?? '其他',
-    dueDate: m['due_date'] != null ? DateTime.fromMillisecondsSinceEpoch(m['due_date'] as int) : null,
+    id: m['id'] as int?, title: m['title'] as String, description: m['description'] as String? ?? '',
+    priority: TodoPriority.values[m['priority'] as int? ?? 1], category: m['category'] as String? ?? '其他',
+    type: TodoType.values[m['type'] as int? ?? 0], repeatRule: m['repeat_rule'] as String? ?? '',
     remindTime: m['remind_time'] != null ? DateTime.fromMillisecondsSinceEpoch(m['remind_time'] as int) : null,
-    isCompleted: (m['is_completed'] as int? ?? 0) == 1,
-    isDaily: (m['is_daily'] as int? ?? 0) == 1,
-    durationMinutes: m['duration_minutes'] as int?,
-    lastCompletedDate: m['last_completed_date'] as String?,
-    todoType: TodoType.values[m['todo_type'] as int? ?? 0],
-    sortOrder: m['sort_order'] as int? ?? 0,
-    createdAt: m['created_at'] != null ? DateTime.fromMillisecondsSinceEpoch(m['created_at'] as int) : DateTime.now(),
+    isCompleted: (m['is_completed'] as int? ?? 0) == 1, sortOrder: m['sort_order'] as int? ?? 0,
     completedAt: m['completed_at'] != null ? DateTime.fromMillisecondsSinceEpoch(m['completed_at'] as int) : null,
+    dueDate: m['due_date'] != null ? DateTime.fromMillisecondsSinceEpoch(m['due_date'] as int) : null,
+    lastCompletedDate: m['last_completed_date'] as String?,
+    createdAt: m['created_at'] != null ? DateTime.fromMillisecondsSinceEpoch(m['created_at'] as int) : DateTime.now(),
   );
 
-  TodoModel copyWith({
-    int? id, String? title, String? description, TodoPriority? priority, String? category,
-    DateTime? dueDate, DateTime? remindTime, bool? isCompleted, bool? isDaily,
-    int? durationMinutes, String? lastCompletedDate, TodoType? todoType, int? sortOrder,
-    DateTime? createdAt, DateTime? completedAt,
-  }) => TodoModel(
-    id: id ?? this.id, title: title ?? this.title, description: description ?? this.description,
-    priority: priority ?? this.priority, category: category ?? this.category,
-    dueDate: dueDate ?? this.dueDate, remindTime: remindTime ?? this.remindTime,
-    isCompleted: isCompleted ?? this.isCompleted, isDaily: isDaily ?? this.isDaily,
-    durationMinutes: durationMinutes ?? this.durationMinutes, lastCompletedDate: lastCompletedDate ?? this.lastCompletedDate,
-    todoType: todoType ?? this.todoType, sortOrder: sortOrder ?? this.sortOrder,
-    createdAt: createdAt ?? this.createdAt, completedAt: completedAt ?? this.completedAt,
-  );
+  TodoModel copyWith({int? id, String? title, String? description, TodoPriority? priority, String? category,
+    TodoType? type, String? repeatRule, DateTime? remindTime, bool? isCompleted, int? sortOrder,
+    DateTime? completedAt, DateTime? dueDate, String? lastCompletedDate, DateTime? createdAt}) =>
+    TodoModel(id: id ?? this.id, title: title ?? this.title, description: description ?? this.description,
+      priority: priority ?? this.priority, category: category ?? this.category,
+      type: type ?? this.type, repeatRule: repeatRule ?? this.repeatRule,
+      remindTime: remindTime ?? this.remindTime, isCompleted: isCompleted ?? this.isCompleted,
+      sortOrder: sortOrder ?? this.sortOrder, completedAt: completedAt ?? this.completedAt,
+      dueDate: dueDate ?? this.dueDate, lastCompletedDate: lastCompletedDate ?? this.lastCompletedDate,
+      createdAt: createdAt ?? this.createdAt);
 }
 
 class TodoCategory {

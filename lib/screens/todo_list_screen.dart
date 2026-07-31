@@ -15,147 +15,85 @@ class TodoListScreen extends StatefulWidget {
 
 class _TodoListScreenState extends State<TodoListScreen> {
   DateTime _selectedDay = DateTime.now();
-  bool _calendarExpanded = false;
-  String _filter = '全部';
+  bool _calendarExpanded = true;
+  List<TodoModel> _todos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    final provider = context.read<TodoProvider>();
+    await provider.loadTodos();
+    _filterByDate(provider.todos);
+  }
+
+  void _filterByDate(List<TodoModel> all) {
+    setState(() => _todos = all.where((t) => t.shouldShowOn(_selectedDay)).toList());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<TodoProvider>(
-      builder: (context, provider, child) {
-        final filtered = _filterTodos(provider.todos);
-        final dateStr = _filter == '按日期' ? DateFormat('M月d日 EEEE', 'zh_CN').format(_selectedDay) : DateFormat('M月d日 EEEE', 'zh_CN').format(DateTime.now());
-
+      builder: (ctx, provider, _) {
+        if (provider.isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        final dateStr = DateFormat('M月d日 EEEE', 'zh_CN').format(_selectedDay);
         return Scaffold(
-          appBar: AppBar(
-            title: Column(children: [
-              const Text('待办事项', style: TextStyle(fontSize: 18)),
-              Text(dateStr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
-            ]),
+          appBar: AppBar(title: Column(children: [const Text('待办', style: TextStyle(fontSize: 18)), Text(dateStr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal))]),
             elevation: 0, centerTitle: true,
-            actions: [
-              IconButton(icon: Icon(_calendarExpanded ? Icons.calendar_month : Icons.calendar_today),
-                onPressed: () => setState(() => _calendarExpanded = !_calendarExpanded)),
-            ],
+            actions: [IconButton(icon: Icon(_calendarExpanded ? Icons.calendar_month : Icons.calendar_today), onPressed: () => setState(() => _calendarExpanded = !_calendarExpanded))],
           ),
           body: Column(children: [
             if (_calendarExpanded)
-              Container(
-                decoration: BoxDecoration(color: Theme.of(context).cardColor, border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
-                child: TableCalendar(
-                  firstDay: DateTime(2020), lastDay: DateTime(2030),
-                  focusedDay: _selectedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onDaySelected: (selected, focused) {
-                    setState(() { _selectedDay = selected; _filter = '按日期'; _calendarExpanded = false; });
+              Container(decoration: BoxDecoration(color: Theme.of(context).cardColor, border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+                child: TableCalendar(firstDay: DateTime(2020), lastDay: DateTime(2030), focusedDay: _selectedDay,
+                  selectedDayPredicate: (d) => isSameDay(_selectedDay, d),
+                  onDaySelected: (d, _) { setState(() { _selectedDay = d; _calendarExpanded = false; }); _filterByDate(provider.todos); },
+                  calendarStyle: CalendarStyle(selectedDecoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle),
+                    todayDecoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.3), shape: BoxShape.circle)),
+                  headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true), daysOfWeekHeight: 26,
+                  availableCalendarFormats: const {CalendarFormat.month: '月'},
+                )),
+            Expanded(child: _todos.isEmpty
+              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.event_available, size: 64, color: Colors.grey.shade300), const SizedBox(height: 12), Text('这天没有待办', style: TextStyle(color: Colors.grey.shade400))]))
+              : ReorderableListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  itemCount: _todos.length,
+                  onReorder: (oldIdx, newIdx) {
+                    if (newIdx > oldIdx) newIdx--;
+                    final item = _todos.removeAt(oldIdx);
+                    _todos.insert(newIdx, item);
+                    provider.reorderTodos(_todos);
                   },
-                  calendarStyle: CalendarStyle(
-                    selectedDecoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle),
-                    todayDecoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.3), shape: BoxShape.circle),
+                  proxyDecorator: (c, i, a) => Material(elevation: 4, borderRadius: BorderRadius.circular(12), child: c),
+                  itemBuilder: (ctx, i) => TodoTile(key: ValueKey(_todos[i].id), todo: _todos[i],
+                    onToggle: () {
+                      if (_todos[i].type == TodoType.disposable) {
+                        provider.deleteTodo(_todos[i].id!);
+                        _todos.removeAt(i);
+                        setState(() {});
+                      } else {
+                        provider.toggleComplete(_todos[i].id!);
+                      }
+                    },
+                    onDelete: () {
+                      showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text('删除'), content: Text('确定删除「${_todos[i].title}」？'), actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+                        TextButton(onPressed: () { provider.deleteTodo(_todos[i].id!); Navigator.pop(ctx); }, style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('删除')),
+                      ]));
+                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddTodoScreen(existingTodo: _todos[i]))),
                   ),
-                  headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
-                  daysOfWeekHeight: 28, availableCalendarFormats: const {CalendarFormat.month: '月'},
-                ),
-              ),
-            _buildFilterBar(context),
-            _buildStatsBar(context, provider),
-            Expanded(
-              child: filtered.isEmpty
-                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.checklist_rounded, size: 72, color: Colors.grey.shade300),
-                      Text('暂无待办', style: TextStyle(fontSize: 16, color: Colors.grey.shade500)),
-                    ]))
-                  : ReorderableListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      itemCount: filtered.length,
-                      onReorder: (oldIndex, newIndex) {
-                        if (newIndex > oldIndex) newIndex--;
-                        final item = filtered.removeAt(oldIndex);
-                        filtered.insert(newIndex, item);
-                        provider.reorderTodos(filtered);
-                      },
-                      proxyDecorator: (child, index, animation) => Material(
-                        elevation: 4, borderRadius: BorderRadius.circular(12), child: child,
-                      ),
-                      itemBuilder: (ctx, i) {
-                        final todo = filtered[i];
-                        return TodoTile(
-                          key: ValueKey(todo.id),
-                          todo: todo,
-                          onToggle: () => provider.toggleComplete(todo.id!),
-                          onDelete: () => _confirmDelete(context, provider, todo),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddTodoScreen(existingTodo: todo))),
-                        );
-                      },
-                    ),
-            ),
+                )),
           ]),
-          floatingActionButton: FloatingActionButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddTodoScreen())), child: const Icon(Icons.add)),
+          floatingActionButton: FloatingActionButton(onPressed: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddTodoScreen()));
+            _filterByDate(provider.todos);
+          }, child: const Icon(Icons.add)),
         );
       },
     );
-  }
-
-  List<TodoModel> _filterTodos(List<TodoModel> todos) {
-    // 完成即删的始终显示
-    if (_filter == '按日期') {
-      return todos.where((t) {
-        if (t.todoType == TodoType.disposable) return true;
-        if (t.dueDate != null) return isSameDay(t.dueDate!, _selectedDay);
-        return isSameDay(t.createdAt, _selectedDay);
-      }).toList();
-    }
-    switch (_filter) {
-      case '今日': return todos.where((t) {
-        if (t.todoType == TodoType.disposable || t.todoType == TodoType.daily) return true;
-        if (t.dueDate == null) return false;
-        final now = DateTime.now(); final start = DateTime(now.year, now.month, now.day);
-        final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        return t.dueDate!.isAfter(start) && t.dueDate!.isBefore(end);
-      }).toList();
-      case '待完成': return todos.where((t) => !t.isCompleted).toList();
-      case '已完成': return todos.where((t) => t.isCompleted).toList();
-      default: return todos;
-    }
-  }
-
-  Widget _buildFilterBar(BuildContext context) {
-    final filters = ['全部', '今日', '待完成', '已完成'];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(
-        children: filters.map((f) => Padding(
-          padding: const EdgeInsets.only(right: 6),
-          child: FilterChip(label: Text(f), selected: _filter == f, onSelected: (_) => setState(() { _filter = f; _calendarExpanded = false; }),
-            backgroundColor: Colors.grey.shade100, selectedColor: Theme.of(context).colorScheme.primaryContainer,
-            side: BorderSide(color: _filter == f ? Theme.of(context).colorScheme.primary : Colors.grey.shade300)),
-        )).toList(),
-      )),
-    );
-  }
-
-  Widget _buildStatsBar(BuildContext context, TodoProvider provider) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary.withOpacity(0.8), Theme.of(context).colorScheme.primary]), borderRadius: BorderRadius.circular(10)),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        _statItem('总待办', '${provider.todos.length}'), _statItem('待完成', '${provider.pendingCount}'), _statItem('今日完成', '${provider.completedToday}'),
-      ]),
-    );
-  }
-
-  Widget _statItem(String label, String value) => Column(children: [
-    Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-    Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11)),
-  ]);
-
-  void _confirmDelete(BuildContext context, TodoProvider provider, TodoModel todo) {
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('删除待办'), content: Text('确定删除「${todo.title}」？'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-        TextButton(onPressed: () { provider.deleteTodo(todo.id!); Navigator.pop(ctx); },
-          style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('删除')),
-      ],
-    ));
   }
 }

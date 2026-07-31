@@ -34,14 +34,15 @@ class MemoTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(memo.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                  ),
-                  Text(memo.formattedDate, style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+              Row(children: [
+                Expanded(child: Text(memo.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
+                if (memo.images.isNotEmpty) ...[
+                  const Icon(Icons.image, size: 14, color: Colors.grey), const SizedBox(width: 4),
+                  Text('${memo.images.length}', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                  const SizedBox(width: 8),
                 ],
-              ),
+                Text(memo.formattedDate, style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+              ]),
               if (memo.content.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(memo.preview, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),

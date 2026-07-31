@@ -12,7 +12,7 @@ class WidgetService {
     if (!Platform.isAndroid) return;
     try {
       final items = titles.take(5).map((t) => '• $t').join('\n');
-      final hItems = habits.take(5).map((h) => '• $h').join('\n');
+      final hItems = habits.take(6).map((h) => '• $h').join('\n');
       await _channel.invokeMethod('updateWidget', {
         'title': '叶恒的自律生活',
         'pending': pending,

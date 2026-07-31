@@ -26,7 +26,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -76,6 +76,7 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         content TEXT DEFAULT '',
+        images TEXT DEFAULT '[]',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
@@ -208,6 +209,14 @@ class AppDatabase {
       await db.execute("ALTER TABLE todos ADD COLUMN todo_type INTEGER DEFAULT 0");
       await db.execute("ALTER TABLE todos ADD COLUMN sort_order INTEGER DEFAULT 0");
     }
+    if (oldVersion < 9) {
+      await db.execute("ALTER TABLE todos ADD COLUMN type INTEGER DEFAULT 0");
+      await db.execute("ALTER TABLE todos ADD COLUMN repeat_rule TEXT DEFAULT ''");
+      await db.execute("UPDATE todos SET type = 1 WHERE todo_type = 1");
+      await db.execute("UPDATE todos SET type = 2 WHERE is_daily = 1 AND todo_type = 0");
+      await db.rawUpdate("UPDATE todos SET repeat_rule = ? WHERE type = 2", ['{"mode":"daily"}']);
+      await db.execute("ALTER TABLE memos ADD COLUMN images TEXT DEFAULT ''");
+    }
   }
 
   // ========== 待办 CRUD ==========
@@ -220,23 +229,24 @@ class AppDatabase {
   Future<List<TodoModel>> getAllTodos() async {
     final db = await database;
     final maps = await db.query('todos', orderBy: 'sort_order ASC, created_at DESC');
-    return _filterInvisible(maps.map((m) => TodoModel.fromMap(m)).toList());
+    final todos = maps.map((m) => TodoModel.fromMap(m)).toList();
+    // 重置每日任务的完成状态
+    final today = _todayStr();
+    final updated = <TodoModel>[];
+    for (final t in todos) {
+      if (t.isCompleted && t.type == TodoType.custom && t.lastCompletedDate != today) {
+        await db.update('todos', {'is_completed': 0, 'completed_at': null}, where: 'id = ?', whereArgs: [t.id]);
+        updated.add(t.copyWith(isCompleted: false, completedAt: null));
+      } else {
+        updated.add(t);
+      }
+    }
+    return updated;
   }
 
-  /// 过滤"当日完成"但昨天未完成的
-  List<TodoModel> _filterInvisible(List<TodoModel> todos) {
-    final today = _todayStr();
-    final filtered = <TodoModel>[];
-    for (final t in todos) {
-      if (t.todoType == TodoType.daily && !t.isCompleted) {
-        final targetDate = t.dueDate != null
-            ? '${t.dueDate!.year}-${t.dueDate!.month.toString().padLeft(2, '0')}-${t.dueDate!.day.toString().padLeft(2, '0')}'
-            : '${t.createdAt.year}-${t.createdAt.month.toString().padLeft(2, '0')}-${t.createdAt.day.toString().padLeft(2, '0')}';
-        if (targetDate != today && t.lastCompletedDate != today) continue;
-      }
-      filtered.add(t);
-    }
-    return filtered;
+  Future<List<TodoModel>> getTodosForDate(DateTime date) async {
+    final all = await getAllTodos();
+    return all.where((t) => t.shouldShowOn(date)).toList();
   }
 
   /// 处理每日任务：昨天完成的今天自动重置
@@ -301,9 +311,8 @@ class AppDatabase {
   Future<int> toggleTodoComplete(int id, bool isCompleted) async {
     final db = await database;
     if (isCompleted) {
-      // 检查是否是 disposable，完成即删
       final result = await db.query('todos', where: 'id = ?', whereArgs: [id]);
-      if (result.isNotEmpty && (result.first['todo_type'] as int? ?? 0) == 2) {
+      if (result.isNotEmpty && (result.first['type'] as int? ?? 0) == 0) {
         return await db.delete('todos', where: 'id = ?', whereArgs: [id]);
       }
     }

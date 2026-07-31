@@ -7,30 +7,9 @@ class TodoProvider extends ChangeNotifier {
   final AppDatabase _db = AppDatabase();
   List<TodoModel> _todos = [];
   bool _isLoading = false;
-  String _filter = '全部';
 
-  List<TodoModel> get todos => _filteredTodos;
+  List<TodoModel> get todos => _todos;
   bool get isLoading => _isLoading;
-  String get filter => _filter;
-
-  List<TodoModel> get _filteredTodos {
-    switch (_filter) {
-      case '今日':
-        final now = DateTime.now();
-        final start = DateTime(now.year, now.month, now.day);
-        final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        return _todos.where((t) { if (t.dueDate == null) return false; return t.dueDate!.isAfter(start) && t.dueDate!.isBefore(end); }).toList();
-      case '待完成': return _todos.where((t) => !t.isCompleted).toList();
-      case '已完成': return _todos.where((t) => t.isCompleted).toList();
-      default: return _todos;
-    }
-  }
-
-  int get completedToday {
-    final now = DateTime.now(); final start = DateTime(now.year, now.month, now.day);
-    final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    return _todos.where((t) { if (!t.isCompleted || t.completedAt == null) return false; return t.completedAt!.isAfter(start) && t.completedAt!.isBefore(end); }).length;
-  }
   int get pendingCount => _todos.where((t) => !t.isCompleted).length;
 
   void _notifyWidget() {
@@ -41,30 +20,33 @@ class TodoProvider extends ChangeNotifier {
   Future<void> loadTodos() async {
     _isLoading = true; notifyListeners();
     _todos = await _db.getAllTodos();
-    _isLoading = false; notifyListeners();
-    _notifyWidget();
+    _isLoading = false; notifyListeners(); _notifyWidget();
   }
 
-  void setFilter(String filter) { _filter = filter; notifyListeners(); }
-
   Future<void> addTodo(TodoModel todo) async {
-    final id = await _db.insertTodo(todo);
-    _todos.insert(0, todo.copyWith(id: id));
+    final maxOrder = _todos.isEmpty ? 0 : _todos.map((t) => t.sortOrder).reduce((a, b) => a > b ? a : b);
+    final id = await _db.insertTodo(todo.copyWith(sortOrder: maxOrder + 1));
+    _todos.add(todo.copyWith(id: id, sortOrder: maxOrder + 1));
     notifyListeners(); _notifyWidget();
   }
 
   Future<void> updateTodo(TodoModel todo) async {
     await _db.updateTodo(todo);
-    final index = _todos.indexWhere((t) => t.id == todo.id);
-    if (index != -1) { _todos[index] = todo; notifyListeners(); _notifyWidget(); }
+    final i = _todos.indexWhere((t) => t.id == todo.id);
+    if (i != -1) _todos[i] = todo;
+    notifyListeners(); _notifyWidget();
   }
 
   Future<void> toggleComplete(int id) async {
-    final index = _todos.indexWhere((t) => t.id == id);
-    if (index == -1) return;
-    final todo = _todos[index]; final newCompleted = !todo.isCompleted;
-    await _db.toggleTodoComplete(id, newCompleted);
-    _todos[index] = todo.copyWith(isCompleted: newCompleted, completedAt: newCompleted ? DateTime.now() : null);
+    final i = _todos.indexWhere((t) => t.id == id);
+    if (i == -1) return;
+    final todo = _todos[i];
+    await _db.toggleTodoComplete(id, !todo.isCompleted);
+    if (todo.type == TodoType.disposable) {
+      _todos.removeAt(i);
+    } else {
+      _todos[i] = todo.copyWith(isCompleted: !todo.isCompleted, completedAt: todo.isCompleted ? null : DateTime.now(), lastCompletedDate: todo.isCompleted ? null : _todayStr());
+    }
     notifyListeners(); _notifyWidget();
   }
 
@@ -76,15 +58,10 @@ class TodoProvider extends ChangeNotifier {
 
   Future<void> reorderTodos(List<TodoModel> reordered) async {
     for (int i = 0; i < reordered.length; i++) {
-      final t = reordered[i];
-      if (t.sortOrder != i) {
-        await _db.updateTodo(t.copyWith(sortOrder: i));
-      }
+      if (reordered[i].sortOrder != i) await _db.updateTodo(reordered[i].copyWith(sortOrder: i));
     }
-    _todos = reordered;
-    notifyListeners();
+    _todos = reordered; notifyListeners();
   }
 
-  Future<Map<String, int>> getWeeklyStats() async => await _db.getWeeklyTodoStats();
-  Future<int> getTotalCount() async => await _db.getTotalCount();
+  String _todayStr() { final n = DateTime.now(); return '${n.year}-${n.month.toString().padLeft(2,'0')}-${n.day.toString().padLeft(2,'0')}'; }
 }

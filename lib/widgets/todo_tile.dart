@@ -120,10 +120,10 @@ class TodoTile extends StatelessWidget {
                           ),
                           if (todo.isDaily)
                             _buildTag('每日', Colors.blue.shade50, Colors.blue.shade700),
-                          if (todo.durationText.isNotEmpty)
-                            _buildTag(todo.durationText, Colors.orange.shade50, Colors.orange.shade700),
-                          if (todo.todoType != TodoType.normal)
-                            _buildTag(todo.typeLabel, todo.todoType == TodoType.daily ? Colors.amber.shade100 : Colors.purple.shade50, todo.todoType == TodoType.daily ? Colors.amber.shade800 : Colors.purple.shade700),
+                          if (todo.durationMinutes != null && todo.durationMinutes! > 0)
+                            _buildTag('${todo.durationMinutes}min', Colors.orange.shade50, Colors.orange.shade700),
+                          if (todo.type != TodoType.disposable)
+                            _buildTag(todo.typeLabel, Colors.blue.shade50, Colors.blue.shade700),
                         ],
                       ),
                       if (todo.dueDate != null)
