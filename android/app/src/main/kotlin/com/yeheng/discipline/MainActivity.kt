@@ -9,6 +9,7 @@ import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.yeheng.discipline.widget.TodoWidgetProvider
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.yeheng.discipline/usage"
@@ -31,6 +32,10 @@ class MainActivity: FlutterActivity() {
                     }
                     "getWeeklyUsage" -> {
                         result.success(getWeeklyUsage())
+                    }
+                    "updateWidget" -> {
+                        updateWidgetData(call.arguments as Map<String, Any>)
+                        result.success(true)
                     }
                     else -> result.notImplemented()
                 }
@@ -59,6 +64,17 @@ class MainActivity: FlutterActivity() {
         val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
+    }
+
+    private fun updateWidgetData(data: Map<String, Any>) {
+        val prefs = getSharedPreferences("widget_data", MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("title", data["title"] as? String ?: "叶恒的自律生活")
+            putInt("pending", (data["pending"] as? Number)?.toInt() ?: 0)
+            putString("items", data["items"] as? String ?: "")
+            apply()
+        }
+        TodoWidgetProvider.updateAllWidgets(this)
     }
 
     // 内置常见应用名映射（不依赖 Android 权限 API）
