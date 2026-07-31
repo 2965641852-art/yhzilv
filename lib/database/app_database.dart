@@ -229,9 +229,10 @@ class AppDatabase {
     final filtered = <TodoModel>[];
     for (final t in todos) {
       if (t.todoType == TodoType.daily && !t.isCompleted) {
-        // 当日任务：检查是否是今天创建的或有今天的完成记录
-        final createdDate = '${t.createdAt.year}-${t.createdAt.month.toString().padLeft(2, '0')}-${t.createdAt.day.toString().padLeft(2, '0')}';
-        if (createdDate != today && t.lastCompletedDate != today) continue;
+        final targetDate = t.dueDate != null
+            ? '${t.dueDate!.year}-${t.dueDate!.month.toString().padLeft(2, '0')}-${t.dueDate!.day.toString().padLeft(2, '0')}'
+            : '${t.createdAt.year}-${t.createdAt.month.toString().padLeft(2, '0')}-${t.createdAt.day.toString().padLeft(2, '0')}';
+        if (targetDate != today && t.lastCompletedDate != today) continue;
       }
       filtered.add(t);
     }

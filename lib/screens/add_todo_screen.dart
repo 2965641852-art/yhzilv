@@ -149,21 +149,11 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
 
               // 任务类型
               _buildSectionLabel('任务类型'),
-              Row(children: TodoType.values.map((t) {
-                final sel = _todoType == t;
-                final (label, icon, color) = switch (t) {
-                  TodoType.normal => ('普通', Icons.assignment, Colors.blue),
-                  TodoType.daily => ('当日完成', Icons.today, Colors.amber),
-                  TodoType.disposable => ('完成即删', Icons.delete_outline, Colors.purple),
-                };
-                return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: ChoiceChip(
-                  label: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 16, color: sel ? Colors.white : color), const SizedBox(width: 4), Text(label)]),
-                  selected: sel, onSelected: (_) => setState(() => _todoType = t),
-                  selectedColor: color, backgroundColor: Colors.grey.shade100,
-                  labelStyle: TextStyle(color: sel ? Colors.white : color, fontWeight: sel ? FontWeight.bold : FontWeight.normal, fontSize: 13),
-                  side: BorderSide(color: sel ? color : Colors.grey.shade300),
-                )));
-              }).toList()),
+              Row(children: [
+                _typeChip(TodoType.normal, '普通', Icons.assignment, Colors.blue),
+                _typeChip(TodoType.daily, '某日完成', Icons.today, Colors.amber),
+                _typeChip(TodoType.disposable, '完成即删', Icons.delete_outline, Colors.purple),
+              ]),
               const SizedBox(height: 20),
 
               _buildSectionLabel('优先级'),
@@ -207,6 +197,17 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         ),
       ),
     );
+  }
+
+  Widget _typeChip(TodoType type, String label, IconData icon, Color color) {
+    final sel = _todoType == type;
+    return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: ChoiceChip(
+      label: FittedBox(fit: BoxFit.scaleDown, child: Text(label, style: TextStyle(fontSize: 11, color: sel ? Colors.white : Colors.grey.shade700, fontWeight: sel ? FontWeight.bold : FontWeight.normal))),
+      selected: sel, onSelected: (_) => setState(() => _todoType = type),
+      selectedColor: color, backgroundColor: Colors.grey.shade100,
+      side: BorderSide(color: sel ? color : Colors.grey.shade300),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+    )));
   }
 
   Widget _buildSectionLabel(String text) {

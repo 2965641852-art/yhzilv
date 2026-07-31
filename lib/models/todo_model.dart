@@ -66,8 +66,8 @@ class TodoModel {
 
   String get typeLabel {
     switch (todoType) {
-      case TodoType.daily: return '当日';
-      case TodoType.disposable: return '完成即删';
+      case TodoType.daily: return '某日';
+      case TodoType.disposable: return '即删';
       default: return '';
     }
   }
