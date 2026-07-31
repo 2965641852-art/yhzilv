@@ -83,6 +83,11 @@ class TodoModel {
     } catch (_) { return true; }
   }
 
+  String get formattedDate {
+    if (dueDate == null) return '';
+    return DateFormat('MM/dd HH:mm').format(dueDate!);
+  }
+
   Map<String, dynamic> toMap() => {
     if (id != null) 'id': id, 'title': title, 'description': description,
     'priority': priority.index, 'category': category, 'type': type.index,

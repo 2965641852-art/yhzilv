@@ -41,29 +41,32 @@ class _AddMemoScreenState extends State<AddMemoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_editing ? '编辑备忘录' : '新建备忘录'), centerTitle: true, elevation: 0),
-      body: Padding(padding: const EdgeInsets.all(20), child: Column(children: [
-        TextField(controller: _titleCtrl, decoration: InputDecoration(hintText: '标题', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        Expanded(child: TextField(controller: _contentCtrl, maxLines: null, expands: true, textAlignVertical: TextAlignVertical.top,
-          decoration: InputDecoration(hintText: '写点什么...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true))),
-        if (_images.isNotEmpty) SizedBox(height: 100, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _images.length,
-          itemBuilder: (ctx, i) => Stack(children: [
-            Padding(padding: const EdgeInsets.only(right: 8, top: 8), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(_images[i]), width: 80, height: 80, fit: BoxFit.cover))),
-            Positioned(top: 0, right: 0, child: GestureDetector(onTap: () => setState(() => _images.removeAt(i)), child: const Icon(Icons.cancel, color: Colors.red, size: 20))),
-          ])))),
-        const SizedBox(height: 12),
-        Row(children: [
-          IconButton(onPressed: _pickImage, icon: const Icon(Icons.add_photo_alternate, size: 28, color: Colors.grey)),
-          const Spacer(),
-          ElevatedButton(onPressed: () {
-            final t = _titleCtrl.text.trim(); if (t.isEmpty) return;
-            final p = context.read<MemoProvider>();
-            if (_editing && widget.existingMemo != null) { p.updateMemo(widget.existingMemo!.copyWith(title: t, content: _contentCtrl.text.trim(), images: _images)); }
-            else { p.addMemo(MemoModel(title: t, content: _contentCtrl.text.trim(), images: _images)); }
-            Navigator.pop(context);
-          }, style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14)), child: const Text('保存', style: TextStyle(fontSize: 16))),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [
+          TextField(controller: _titleCtrl, decoration: InputDecoration(hintText: '标题', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          Expanded(child: TextField(controller: _contentCtrl, maxLines: null, expands: true, textAlignVertical: TextAlignVertical.top,
+            decoration: InputDecoration(hintText: '写点什么...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true))),
+          if (_images.isNotEmpty) SizedBox(height: 100, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _images.length,
+            itemBuilder: (ctx, i) => Stack(children: [
+              Padding(padding: const EdgeInsets.only(right: 8, top: 8), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(_images[i]), width: 80, height: 80, fit: BoxFit.cover))),
+              Positioned(top: 0, right: 0, child: GestureDetector(onTap: () => setState(() => _images.removeAt(i)), child: const Icon(Icons.cancel, color: Colors.red, size: 20))),
+            ]))),
+          const SizedBox(height: 12),
+          Row(children: [
+            IconButton(onPressed: _pickImage, icon: const Icon(Icons.add_photo_alternate, size: 28, color: Colors.grey)),
+            const Spacer(),
+            ElevatedButton(onPressed: () {
+              final t = _titleCtrl.text.trim(); if (t.isEmpty) return;
+              final p = context.read<MemoProvider>();
+              if (_editing && widget.existingMemo != null) { p.updateMemo(widget.existingMemo!.copyWith(title: t, content: _contentCtrl.text.trim(), images: _images)); }
+              else { p.addMemo(MemoModel(title: t, content: _contentCtrl.text.trim(), images: _images)); }
+              Navigator.pop(context);
+            }, style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14)), child: const Text('保存', style: TextStyle(fontSize: 16))),
+          ]),
         ]),
-      ])),
+      ),
     );
   }
 }

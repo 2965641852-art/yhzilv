@@ -249,18 +249,7 @@ class AppDatabase {
     return all.where((t) => t.shouldShowOn(date)).toList();
   }
 
-  /// 处理每日任务：昨天完成的今天自动重置
-  List<TodoModel> _processDailyTodos(List<TodoModel> todos) {
-    final today = _todayStr();
-    return todos.map((t) {
-      if (!t.isDaily) return t;
-      if (!t.isCompleted) return t;
-      // 每日任务已完成，检查是否是今天完成的
-      if (t.lastCompletedDate == today) return t;
-      // 昨天完成的，今天重置为未完成
-      return t.copyWith(isCompleted: false, completedAt: null);
-    }).toList();
-  }
+  /// 每日任务重置已在 getAllTodos 中处理
 
   String _todayStr() {
     final now = DateTime.now();
@@ -280,7 +269,7 @@ class AppDatabase {
     } else {
       maps = await db.query('todos', orderBy: 'created_at DESC');
     }
-    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
+    return maps.map((m) => TodoModel.fromMap(m)).toList();
   }
 
   Future<List<TodoModel>> getTodayTodos() async {
@@ -295,7 +284,7 @@ class AppDatabase {
       whereArgs: [startOfDay, endOfDay],
       orderBy: 'created_at DESC',
     );
-    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
+    return maps.map((m) => TodoModel.fromMap(m)).toList();
   }
 
   Future<int> updateTodo(TodoModel todo) async {
