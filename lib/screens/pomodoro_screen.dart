@@ -156,9 +156,9 @@ class _PomodoroScreenState extends State<PomodoroScreen> with SingleTickerProvid
   }
 
   Widget _timeSetter(String label, int val, ValueChanged<int> onChanged) {
-    return Column(children: [
+    return Expanded(child: Column(children: [
       Text('$label: $val 分钟', style: const TextStyle(fontSize: 13)),
       Slider(value: val.toDouble(), min: 5, max: 60, divisions: 11, onChanged: (v) => onChanged(v.toInt())),
-    ]);
+    ]));
   }
 }

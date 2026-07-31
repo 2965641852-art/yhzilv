@@ -69,9 +69,10 @@ class MainActivity: FlutterActivity() {
     private fun updateWidgetData(data: Map<String, Any>) {
         val prefs = getSharedPreferences("widget_data", MODE_PRIVATE)
         prefs.edit().apply {
-            putString("title", data["title"] as? String ?: "叶恒的自律生活")
-            putInt("pending", (data["pending"] as? Number)?.toInt() ?: 0)
-            putString("items", data["items"] as? String ?: "")
+            val t = data["title"] as? String; if (!t.isNullOrEmpty()) putString("title", t)
+            val p = data["pending"] as? Number; if (p != null) putInt("pending", p.toInt())
+            val i = data["items"] as? String; if (i != null) putString("items", i)
+            val h = data["habits"] as? String; if (h != null) putString("habits", h)
             apply()
         }
         TodoWidgetProvider.updateAllWidgets(this)

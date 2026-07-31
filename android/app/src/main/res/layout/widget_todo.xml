@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="12dp">
+    android:padding="10dp">
 
     <TextView
         android:id="@+id/widget_title"
@@ -13,15 +13,30 @@
         android:layout_height="wrap_content"
         android:text="叶恒的自律生活"
         android:textColor="#333333"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/widget_todos"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="📋 打开 App 查看待办"
-        android:textColor="#666666"
-        android:textSize="12sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp"
+        android:text="📋 暂无待办"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        android:maxLines="5"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/widget_habits"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:text="✅ 暂无习惯"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        android:maxLines="5"
+        android:ellipsize="end" />
 </LinearLayout>

@@ -26,7 +26,7 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -202,15 +202,11 @@ class AppDatabase {
       await db.execute("ALTER TABLE anniversaries ADD COLUMN remind_annually INTEGER DEFAULT 0");
     }
     if (oldVersion < 7) {
-      await db.execute('''
-        CREATE TABLE pomodoro_records (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          duration INTEGER NOT NULL,
-          category TEXT DEFAULT '学习',
-          date INTEGER NOT NULL,
-          completed INTEGER DEFAULT 1
-        )
-      ''');
+      await db.execute('''CREATE TABLE pomodoro_records (id INTEGER PRIMARY KEY AUTOINCREMENT, duration INTEGER NOT NULL, category TEXT DEFAULT '学习', date INTEGER NOT NULL, completed INTEGER DEFAULT 1)''');
+    }
+    if (oldVersion < 8) {
+      await db.execute("ALTER TABLE todos ADD COLUMN todo_type INTEGER DEFAULT 0");
+      await db.execute("ALTER TABLE todos ADD COLUMN sort_order INTEGER DEFAULT 0");
     }
   }
 
@@ -223,8 +219,23 @@ class AppDatabase {
 
   Future<List<TodoModel>> getAllTodos() async {
     final db = await database;
-    final maps = await db.query('todos', orderBy: 'created_at DESC');
-    return _processDailyTodos(maps.map((m) => TodoModel.fromMap(m)).toList());
+    final maps = await db.query('todos', orderBy: 'sort_order ASC, created_at DESC');
+    return _filterInvisible(maps.map((m) => TodoModel.fromMap(m)).toList());
+  }
+
+  /// 过滤"当日完成"但昨天未完成的
+  List<TodoModel> _filterInvisible(List<TodoModel> todos) {
+    final today = _todayStr();
+    final filtered = <TodoModel>[];
+    for (final t in todos) {
+      if (t.todoType == TodoType.daily && !t.isCompleted) {
+        // 当日任务：检查是否是今天创建的或有今天的完成记录
+        final createdDate = '${t.createdAt.year}-${t.createdAt.month.toString().padLeft(2, '0')}-${t.createdAt.day.toString().padLeft(2, '0')}';
+        if (createdDate != today && t.lastCompletedDate != today) continue;
+      }
+      filtered.add(t);
+    }
+    return filtered;
   }
 
   /// 处理每日任务：昨天完成的今天自动重置
@@ -288,16 +299,18 @@ class AppDatabase {
 
   Future<int> toggleTodoComplete(int id, bool isCompleted) async {
     final db = await database;
-    return await db.update(
-      'todos',
-      {
-        'is_completed': isCompleted ? 1 : 0,
-        'completed_at': isCompleted ? DateTime.now().millisecondsSinceEpoch : null,
-        if (isCompleted) 'last_completed_date': _todayStr(),
-      },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    if (isCompleted) {
+      // 检查是否是 disposable，完成即删
+      final result = await db.query('todos', where: 'id = ?', whereArgs: [id]);
+      if (result.isNotEmpty && (result.first['todo_type'] as int? ?? 0) == 2) {
+        return await db.delete('todos', where: 'id = ?', whereArgs: [id]);
+      }
+    }
+    return await db.update('todos', {
+      'is_completed': isCompleted ? 1 : 0,
+      'completed_at': isCompleted ? DateTime.now().millisecondsSinceEpoch : null,
+      if (isCompleted) 'last_completed_date': _todayStr(),
+    }, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteTodo(int id) async {
@@ -434,6 +447,12 @@ class AppDatabase {
   Future<int> updateHabit(HabitModel habit) async {
     final db = await database;
     return await db.update('habits', habit.toMap(), where: 'id = ?', whereArgs: [habit.id]);
+  }
+
+  Future<int> deleteHabit(int id) async {
+    final db = await database;
+    await db.delete('habit_completions', where: 'habit_id = ?', whereArgs: [id]);
+    return await db.delete('habits', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> toggleHabitComplete(int habitId, {int count = 1}) async {

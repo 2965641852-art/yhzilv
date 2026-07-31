@@ -26,10 +26,15 @@ class TodoWidgetProvider : AppWidgetProvider() {
             val items = prefs.getString("items", "") ?: ""
 
             views.setTextViewText(R.id.widget_title, title)
+            views.setTextViewText(R.id.widget_todos, "📋 待办 ${count}项")
             if (items.isNotEmpty()) {
-                views.setTextViewText(R.id.widget_todos, items)
+                views.setTextViewText(R.id.widget_todos, "📋 待办 ${count}项\n$items")
+            }
+            val habits = prefs.getString("habits", "") ?: ""
+            if (habits.isNotEmpty()) {
+                views.setTextViewText(R.id.widget_habits, "✅ 习惯\n$habits")
             } else {
-                views.setTextViewText(R.id.widget_todos, "暂无待办 · 点击打开添加")
+                views.setTextViewText(R.id.widget_habits, "✅ 暂无习惯")
             }
 
             val intent = Intent(context, MainActivity::class.java).apply {

@@ -35,7 +35,7 @@ class TodoProvider extends ChangeNotifier {
 
   void _notifyWidget() {
     final pending = _todos.where((t) => !t.isCompleted).toList();
-    WidgetService.updateWidget(pending: pending.length, titles: pending.map((t) => t.title).toList());
+    WidgetService.updateWidget(pending: pending.length, titles: pending.map((t) => t.title).toList(), habits: []);
   }
 
   Future<void> loadTodos() async {
@@ -72,6 +72,17 @@ class TodoProvider extends ChangeNotifier {
     await _db.deleteTodo(id);
     _todos.removeWhere((t) => t.id == id);
     notifyListeners(); _notifyWidget();
+  }
+
+  Future<void> reorderTodos(List<TodoModel> reordered) async {
+    for (int i = 0; i < reordered.length; i++) {
+      final t = reordered[i];
+      if (t.sortOrder != i) {
+        await _db.updateTodo(t.copyWith(sortOrder: i));
+      }
+    }
+    _todos = reordered;
+    notifyListeners();
   }
 
   Future<Map<String, int>> getWeeklyStats() async => await _db.getWeeklyTodoStats();

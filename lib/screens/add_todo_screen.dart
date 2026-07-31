@@ -25,6 +25,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
   bool _isEditing = false;
   bool _isDaily = false;
   int? _durationMinutes;
+  TodoType _todoType = TodoType.normal;
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
       _remindTime = t.remindTime;
       _isDaily = t.isDaily;
       _durationMinutes = t.durationMinutes;
+      _todoType = t.todoType;
     }
   }
 
@@ -143,6 +145,25 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
+
+              // 任务类型
+              _buildSectionLabel('任务类型'),
+              Row(children: TodoType.values.map((t) {
+                final sel = _todoType == t;
+                final (label, icon, color) = switch (t) {
+                  TodoType.normal => ('普通', Icons.assignment, Colors.blue),
+                  TodoType.daily => ('当日完成', Icons.today, Colors.amber),
+                  TodoType.disposable => ('完成即删', Icons.delete_outline, Colors.purple),
+                };
+                return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: ChoiceChip(
+                  label: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 16, color: sel ? Colors.white : color), const SizedBox(width: 4), Text(label)]),
+                  selected: sel, onSelected: (_) => setState(() => _todoType = t),
+                  selectedColor: color, backgroundColor: Colors.grey.shade100,
+                  labelStyle: TextStyle(color: sel ? Colors.white : color, fontWeight: sel ? FontWeight.bold : FontWeight.normal, fontSize: 13),
+                  side: BorderSide(color: sel ? color : Colors.grey.shade300),
+                )));
+              }).toList()),
               const SizedBox(height: 20),
 
               _buildSectionLabel('优先级'),
@@ -293,6 +314,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         priority: _priority, category: _category,
         dueDate: _dueDate, remindTime: _remindTime,
         isDaily: _isDaily, durationMinutes: _durationMinutes,
+        todoType: _todoType,
       ));
       if (_remindTime != null && old.id != null) {
         await notificationService.scheduleTodoReminder(id: old.id!, title: _titleController.text.trim(), remindTime: _remindTime!);
@@ -304,6 +326,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         priority: _priority, category: _category,
         dueDate: _dueDate, remindTime: _remindTime,
         isDaily: _isDaily, durationMinutes: _durationMinutes,
+        todoType: _todoType,
       );
       await todoProvider.addTodo(todo);
       final todos = todoProvider.todos;

@@ -156,6 +156,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ])),
           actions: [
             TextButton(onPressed: () { Navigator.pop(ctx); _showStats(context, h); }, child: const Text('统计')),
+            TextButton(onPressed: () {
+              context.read<HabitProvider>().deleteHabit(h.id!);
+              Navigator.pop(ctx);
+            }, child: const Text('删除', style: TextStyle(color: Colors.red))),
             TextButton(onPressed: () { Navigator.pop(ctx); }, child: const Text('取消')),
             TextButton(onPressed: () {
               final n = nameCtrl.text.trim(); if (n.isEmpty) return;
