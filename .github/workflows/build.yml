@@ -46,6 +46,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.22.0', channel: 'stable' }
 
+      - name: 补全 iOS 项目文件
+        run: flutter create --platforms ios --project-name yeheng_discipline --org com.yeheng .
+
       - run: echo '{"project_type":"app"}' > .metadata
       - run: flutter pub get
       - run: flutter build ios --no-codesign --release
