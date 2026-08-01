@@ -3,35 +3,35 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="8dp">
+    android:padding="10dp">
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+    <TextView
+        android:id="@+id/widget_todos"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:padding="4dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="📋 待办" android:textColor="#333" android:textSize="13sp" android:textStyle="bold" />
-        <TextView android:id="@+id/widget_todos"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-            android:text="暂无" android:textColor="#555" android:textSize="11sp" android:maxLines="6" android:ellipsize="end" />
-    </LinearLayout>
+        android:text="📋 暂无待办"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        android:maxLines="4"
+        android:ellipsize="end" />
 
-    <View android:layout_width="1dp" android:layout_height="match_parent" android:background="#DDD" android:layout_marginHorizontal="4dp" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD"
+        android:layout_marginVertical="4dp" />
 
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+    <TextView
+        android:id="@+id/widget_habits"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:padding="4dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="✅ 习惯" android:textColor="#333" android:textSize="13sp" android:textStyle="bold" />
-        <TextView android:id="@+id/widget_habits"
-            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-            android:text="暂无" android:textColor="#555" android:textSize="11sp" android:maxLines="6" android:ellipsize="end" />
-    </LinearLayout>
+        android:text="✅ 暂无习惯"
+        android:textColor="#555555"
+        android:textSize="12sp"
+        android:maxLines="4"
+        android:ellipsize="end" />
 </LinearLayout>
