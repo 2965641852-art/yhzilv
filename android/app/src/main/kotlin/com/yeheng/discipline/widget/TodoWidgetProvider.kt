@@ -6,17 +6,23 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import android.widget.RemoteViews
 import com.yeheng.discipline.MainActivity
 import com.yeheng.discipline.R
 
 class TodoWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (id in appWidgetIds) updateWidget(context, appWidgetManager, id)
+        try {
+            for (id in appWidgetIds) updateWidget(context, appWidgetManager, id)
+        } catch (e: Exception) {
+            Log.e("TodoWidget", "onUpdate failed", e)
+        }
     }
 
     companion object {
         private const val PREFS = "widget_data"
+        private const val TAG = "TodoWidget"
 
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
             try {
@@ -26,16 +32,11 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 val items = prefs.getString("items", "") ?: ""
                 val habits = prefs.getString("habits", "") ?: ""
 
-                if (items.isNotEmpty()) {
-                    views.setTextViewText(R.id.widget_todos, "📋 待办 ${count}项\n$items")
-                } else {
-                    views.setTextViewText(R.id.widget_todos, "📋 暂无待办")
-                }
-                if (habits.isNotEmpty()) {
-                    views.setTextViewText(R.id.widget_habits, "✅ 习惯\n$habits")
-                } else {
-                    views.setTextViewText(R.id.widget_habits, "✅ 暂无习惯")
-                }
+                val todoText = if (items.isNotEmpty()) "📋 待办 ${count}项\n$items" else "📋 暂无待办"
+                views.setTextViewText(R.id.widget_todos, todoText)
+
+                val habitText = if (habits.isNotEmpty()) "✅ 习惯\n$habits" else "✅ 暂无习惯"
+                views.setTextViewText(R.id.widget_habits, habitText)
 
                 val intent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -48,15 +49,19 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_root, pi)
                 appWidgetManager.updateAppWidget(widgetId, views)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "updateWidget failed", e)
             }
         }
 
         fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = android.content.ComponentName(context, TodoWidgetProvider::class.java)
-            val ids = appWidgetManager.getAppWidgetIds(componentName)
-            for (id in ids) updateWidget(context, appWidgetManager, id)
+            try {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val componentName = android.content.ComponentName(context, TodoWidgetProvider::class.java)
+                val ids = appWidgetManager.getAppWidgetIds(componentName)
+                for (id in ids) updateWidget(context, appWidgetManager, id)
+            } catch (e: Exception) {
+                Log.e(TAG, "updateAllWidgets failed", e)
+            }
         }
     }
 }
