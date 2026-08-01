@@ -48,17 +48,17 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
     if (t != null) setState(() => _remindTime = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, t.hour, t.minute));
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty) return;
     final todo = TodoModel(title: _titleCtrl.text.trim(), description: _descCtrl.text.trim(),
       priority: _priority, category: _category, type: _type, repeatRule: _repeatRule,
       dueDate: _type == TodoType.oneDay ? _dueDate : null, remindTime: _remindTime);
     final p = context.read<TodoProvider>();
     if (_isEditing && widget.existingTodo != null) {
-      p.updateTodo(widget.existingTodo!.copyWith(title: todo.title, description: todo.description,
+      await p.updateTodo(widget.existingTodo!.copyWith(title: todo.title, description: todo.description,
         priority: todo.priority, category: todo.category, type: todo.type, repeatRule: todo.repeatRule,
         dueDate: todo.dueDate, remindTime: todo.remindTime));
-    } else { p.addTodo(todo); }
+    } else { await p.addTodo(todo); }
     Navigator.pop(context);
   }
 

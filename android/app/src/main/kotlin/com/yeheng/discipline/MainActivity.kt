@@ -71,8 +71,8 @@ class MainActivity: FlutterActivity() {
         prefs.edit().apply {
             val t = data["title"] as? String; if (!t.isNullOrEmpty()) putString("title", t)
             val p = data["pending"] as? Number; if (p != null) putInt("pending", p.toInt())
-            val i = data["items"] as? String; if (i != null) putString("items", i)
-            val h = data["habits"] as? String; if (h != null) putString("habits", h)
+            val i = data["items"] as? String; if (!i.isNullOrEmpty()) putString("items", i)
+            val h = data["habits"] as? String; if (!h.isNullOrEmpty()) putString("habits", h)
             apply()
         }
         TodoWidgetProvider.updateAllWidgets(this)

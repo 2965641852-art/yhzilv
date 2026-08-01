@@ -50,7 +50,10 @@ class _AddMemoScreenState extends State<AddMemoScreen> {
             decoration: InputDecoration(hintText: '写点什么...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true))),
           if (_images.isNotEmpty) SizedBox(height: 100, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _images.length,
             itemBuilder: (ctx, i) => Stack(children: [
-              Padding(padding: const EdgeInsets.only(right: 8, top: 8), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(_images[i]), width: 80, height: 80, fit: BoxFit.cover))),
+              GestureDetector(
+                onTap: () => showDialog(context: context, builder: (_) => Dialog(child: InteractiveViewer(child: Image.file(File(_images[i]), fit: BoxFit.contain)))),
+                child: Padding(padding: const EdgeInsets.only(right: 8, top: 8), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(_images[i]), width: 80, height: 80, fit: BoxFit.cover))),
+              ),
               Positioned(top: 0, right: 0, child: GestureDetector(onTap: () => setState(() => _images.removeAt(i)), child: const Icon(Icons.cancel, color: Colors.red, size: 20))),
             ]))),
           const SizedBox(height: 12),
