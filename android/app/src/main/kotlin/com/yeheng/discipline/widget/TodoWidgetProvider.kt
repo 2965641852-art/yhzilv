@@ -21,11 +21,9 @@ class TodoWidgetProvider : AppWidgetProvider() {
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_todo)
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val title = prefs.getString("title", "叶恒的自律生活") ?: "叶恒的自律生活"
             val count = prefs.getInt("pending", 0)
             val items = prefs.getString("items", "") ?: ""
 
-            views.setTextViewText(R.id.widget_title, title)
             views.setTextViewText(R.id.widget_todos, "📋 待办 ${count}项")
             if (items.isNotEmpty()) {
                 views.setTextViewText(R.id.widget_todos, "📋 待办 ${count}项\n$items")
